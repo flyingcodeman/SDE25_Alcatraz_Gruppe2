@@ -4,6 +4,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class Server extends UnicastRemoteObject implements ServerInterface {
     private List<ClientInterface> clients = new ArrayList<>();
 
@@ -23,7 +24,7 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
     public static void main(String[] args) {
         try {
             Server server = new Server();
-            java.rmi.registry.LocateRegistry.createRegistry(1099);
+            java.rmi.registry.LocateRegistry.createRegistry(ServerConfig.SERVER_PORT);
             java.rmi.registry.Registry registry = java.rmi.registry.LocateRegistry.getRegistry();
             registry.rebind("Server", server);
             System.out.println("Server gestartet.");
