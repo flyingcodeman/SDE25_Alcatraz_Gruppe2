@@ -1,13 +1,24 @@
+import at.falb.games.alcatraz.api.Alcatraz;
+import at.falb.games.alcatraz.api.MoveListener;
+import at.falb.games.alcatraz.api.Player;
+import at.falb.games.alcatraz.api.Prisoner;
+
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.rmi.Remote;
 import java.rmi.RemoteException;
+import java.util.*;
 
 public class Client extends UnicastRemoteObject implements ClientInterface {
     private String name;
+    private int id;
+    private int currentTurnId;
     private ClientInterface opponent;
     private int currentValue;
+    private int moveCounter = 0;
+    private Alcatraz alcatraz;
+    private List<Player> players = new ArrayList<>();
+    private List<Client> clients = new ArrayList<>();
 
     public Client(String name) throws RemoteException {
         this.name = name;
@@ -17,16 +28,6 @@ public class Client extends UnicastRemoteObject implements ClientInterface {
     @Override
     public void receiveMessage(String message) throws RemoteException {
         System.out.println(name + " hat eine Nachricht erhalten: " + message);
-    }
-
-    @Override
-    public void setOpponent(ClientInterface opponent) throws RemoteException {
-        this.opponent = opponent;
-    }
-
-    @Override
-    public void startGame() throws RemoteException {
-        playGame();
     }
 
     @Override
@@ -42,18 +43,10 @@ public class Client extends UnicastRemoteObject implements ClientInterface {
         }
     }
 
-    private void playGame() {
-        try {
-            sendMessage(currentValue);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
     public static void main(String[] args) {
         try {
             String serverHost = "localhost";
-            Registry registry = LocateRegistry.getRegistry(serverHost, 1099);
+            Registry registry = LocateRegistry.getRegistry(serverHost, 4567);
             ServerInterface server = (ServerInterface) registry.lookup("Server");
 
             String clientName = "Client1";

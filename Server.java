@@ -14,6 +14,7 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
     @Override
     public synchronized void register(ClientInterface client) throws RemoteException {
         clients.add(client);
+
         if (clients.size() == 2) {
             clients.get(0).setOpponent(clients.get(1));
             clients.get(1).setOpponent(clients.get(0));
