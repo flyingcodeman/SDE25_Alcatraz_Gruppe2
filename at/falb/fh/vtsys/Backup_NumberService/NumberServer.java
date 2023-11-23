@@ -1,3 +1,8 @@
+/*
+
+package at.falb.fh.vtsys.Backup_NumberService;
+
+
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
@@ -11,11 +16,9 @@ import java.util.Scanner;
 
 public class NumberServer {
     public static void main(String[] args) throws RemoteException, MalformedURLException {
-        List<NumberService> allClients = new ArrayList<>();
-        
-        
-        System.out.println(args[0]);
-        NumberService numberService = new NumberServiceImpl();
+        List<PlayerService> allClients = new ArrayList<>();
+
+        PlayerService playerService = new at.falb.fh.vtsys.PlayerServiceImpl();
         Registry registry;
         try {
             registry = LocateRegistry.createRegistry(1099);
@@ -26,21 +29,20 @@ public class NumberServer {
                 throw new RuntimeException(e);
             }
         }
-        registry.rebind("NumberService" + args[0], numberService);
-        System.out.println("Server server started.");
+        registry.rebind("NumberService" + args[0], playerService);
+        System.out.println("Player " + args[0] + " successfully started.\n");
 
         //----
-        // Client logic
-        
+        // Shortened Client logic - see method below
         allClients = refreshRMI(args[0]);
         //----
-
-
         Scanner scanner = new Scanner(System.in);
 
         while (true) {
             System.out.println("Choose an option:");
-            System.out.println("1. Exit");
+            System.out.println("Add a number: 1");
+            System.out.println("Refresh Player List: 2");
+            System.out.println("Exit the game: 3\n");
 
             // Read user input
             int choice = scanner.nextInt();
@@ -49,16 +51,15 @@ public class NumberServer {
             switch (choice) {
                 case 1:
                     System.out.println("Add number");
-
                     try {
+                        // Get the updated number from the server
+                        int updatedNumber = playerService.getNumber();
+                        System.out.println("Current number: " + updatedNumber);
+
                         // Update the shared number
-                        for (NumberService ns : allClients){
+                        for (PlayerService ns : allClients){
                             ns.updateNumber(1);
                         }
-
-                        // Get the updated number from the server
-                        int updatedNumber = numberService.getNumber();
-                        System.out.println("Current number: " + updatedNumber);
                     } catch (NumberFormatException e) {
                         System.out.println("Invalid input. Please enter a valid number.");
                     }
@@ -77,25 +78,29 @@ public class NumberServer {
 
     }
 
-    private static List<NumberService> refreshRMI(String myId) {
+    private static List<PlayerService> refreshRMI(String myId) {
         int id = Integer.parseInt(myId);
-        List<NumberService> tmpNumberServiceClient = new ArrayList<>();
+        List<PlayerService> tmpPlayerServiceClient = new ArrayList<>();
         
         for(int x=1; x<5; x++) {
             if (id == x){
                 continue;
             }
             try {
-                NumberService numberServiceClient = (NumberService) Naming.lookup("rmi://localhost:1099/NumberService" + x);
-                tmpNumberServiceClient.add(numberServiceClient);
+                PlayerService playerServiceClient = (PlayerService) Naming.lookup("rmi://localhost:1099/NumberService" + x);
+                tmpPlayerServiceClient.add(playerServiceClient);
+                System.out.println("Player " + x + " up and running");
             } catch (NotBoundException e) {
-                System.out.println("Number Service " + x + " not running");
+                //System.out.println("Number Service " + x + " not running");
             } catch (MalformedURLException e) {
                 e.printStackTrace();
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
         }
-        return tmpNumberServiceClient;
+        return tmpPlayerServiceClient;
     }
 }
+
+
+ */

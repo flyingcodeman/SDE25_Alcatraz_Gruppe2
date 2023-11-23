@@ -1,11 +1,13 @@
+package at.falb.fh.vtsys;
+
 import java.rmi.Naming;
 import java.util.Scanner;
 
-public class NumberClient {
+public class PlayerClient {
     public static void main(String[] args) {
         try {
-            NumberService numberService1 = (NumberService) Naming.lookup("rmi://localhost:1099/NumberService1");
-            NumberService numberService2 = (NumberService) Naming.lookup("rmi://localhost:1099/NumberService2");
+            PlayerService playerService1 = (PlayerService) Naming.lookup("rmi://localhost:1099/NumberService1");
+            PlayerService playerService2 = (PlayerService) Naming.lookup("rmi://localhost:1099/NumberService2");
             Scanner scanner = new Scanner(System.in);
 
             while (true) {
@@ -22,8 +24,8 @@ public class NumberClient {
                     int number = Integer.parseInt(userInput);
 
                     // Update the shared number
-                    numberService1.updateNumber(number);
-                    numberService2.updateNumber(number);
+                    //playerService1.updateNumber(number);
+                    //playerService2.updateNumber(number);
 
                     // Get the updated number from the server
                     //int updatedNumber = numberService.getNumber();
