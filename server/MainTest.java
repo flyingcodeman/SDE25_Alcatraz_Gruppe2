@@ -1,19 +1,49 @@
 package server;
 
+import at.falb.fh.vtsys.HelloInterface;
 import spread.SpreadException;
 
 import java.net.UnknownHostException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.Scanner;
 
 
-public class MainTest{
-	
+
+
+public class MainTest extends UnicastRemoteObject implements HelloInterface {
+    // Constructor
+    public MainTest() throws RemoteException {
+        super();
+    }
+
+    // Remote method
+    public String sayHello() throws RemoteException {
+        return "Hello from the server!";
+    }
 	
 	public static void main(String[] args) throws UnknownHostException, SpreadException {
 		SpreadService spreadService = new SpreadService("service1");
 		SpreadService spreadService2 = new SpreadService("service2");
 		
 		Scanner scanner = new Scanner(System.in);
+
+        try {
+            // Create and export the remote object
+            MainTest server = new MainTest();
+
+            // Create the RMI registry on port 1099
+            Registry registry = LocateRegistry.createRegistry(1099);
+
+            // Bind the remote object to the RMI registry
+            registry.rebind("HelloServer", server);
+
+            System.out.println("Server is ready...");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 		
         // Main loop
         while (true) {

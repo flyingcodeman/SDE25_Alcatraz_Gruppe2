@@ -27,8 +27,9 @@ public class PlayerServer {
     }
 
     private void lobby(String[] args) throws RemoteException {
-
         PlayerService playerService = new at.falb.fh.vtsys.PlayerServiceImpl();
+
+        /*
         Registry registry;
         try {
             registry = LocateRegistry.createRegistry(1099);
@@ -49,6 +50,7 @@ public class PlayerServer {
         //Todo
         allClients = refreshRMI(args[0]);
         //----
+        */
 
         Scanner scanner = new Scanner(System.in);
 
@@ -100,6 +102,20 @@ public class PlayerServer {
                 case 3:
                     System.out.println("Exiting the program. Goodbye!");
                     System.exit(0); // Terminate the program
+                    break;
+                case 4:
+                    try {
+                        // Lookup the remote object from the RMI registry
+                        HelloInterface hello = (HelloInterface) Naming.lookup("rmi://localhost/HelloServer");
+
+                        // Call the remote method
+                        String message = hello.sayHello();
+
+                        // Display the result
+                        System.out.println("Message from server: " + message);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     break;
                 default:
                     System.out.println("Invalid option. Please choose a valid option.");
