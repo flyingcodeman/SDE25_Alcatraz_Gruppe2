@@ -27,6 +27,8 @@ public class PlayerServer {
     private void init(String[] args) throws RemoteException {
        // PlayerService playerService = new PlayerServiceImpl();
         Player player;
+        Player player1;
+        Player player2;
 
         /*
         Registry registry;
@@ -68,6 +70,10 @@ public class PlayerServer {
             // Process user input
             switch (choice) {
                 case 1:
+                    player1 = new Player(1);
+                    player1.setName("Player_1");
+                    player2 = new Player(2);
+                    player2.setName("Player_2")
                     // ----------------------------------------------
                     // Create Alcatraz instances and add move listeners
                    /* if(allClients.size() > 1) {
