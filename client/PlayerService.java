@@ -1,4 +1,4 @@
-package at.falb.fh.vtsys;
+package client;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;

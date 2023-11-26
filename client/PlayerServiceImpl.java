@@ -1,4 +1,4 @@
-package at.falb.fh.vtsys;
+package client;
 
 import at.falb.games.alcatraz.api.Player;
 

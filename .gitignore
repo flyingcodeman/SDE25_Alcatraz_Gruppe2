@@ -1,6 +1,7 @@
 # Compiled class file
 *.class
 
+
 # xml / iml files
 *.xml
 *.iml
@@ -27,3 +28,6 @@
 hs_err_pid*
 replay_pid*
 /spread-src-4.0.0/
+
+.idea/**
+
