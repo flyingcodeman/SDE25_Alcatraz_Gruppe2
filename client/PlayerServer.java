@@ -1,33 +1,32 @@
-package at.falb.fh.vtsys;
+package client;
 
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
 import at.falb.games.alcatraz.api.Alcatraz;
-import at.falb.games.alcatraz.api.IllegalMoveException;
 import at.falb.games.alcatraz.api.MoveListener;
 import at.falb.games.alcatraz.api.Player;
 import at.falb.games.alcatraz.api.Prisoner;
+import interfaces.ServerRMIInterface;
 
 
 public class PlayerServer {
-    private List<PlayerService> allClients = new ArrayList<>();
+    private List<Player> allClients = new ArrayList<>();
 
     public static void main(String[] args) throws RemoteException, MalformedURLException {
         // Create an instance of NumberServer
         PlayerServer playerServer = new PlayerServer();
-        playerServer.lobby(args);
+        playerServer.init(args);
     }
 
-    private void lobby(String[] args) throws RemoteException {
-        PlayerService playerService = new at.falb.fh.vtsys.PlayerServiceImpl();
+    private void init(String[] args) throws RemoteException {
+       // PlayerService playerService = new PlayerServiceImpl();
+        Player player;
 
         /*
         Registry registry;
@@ -52,23 +51,26 @@ public class PlayerServer {
         //----
         */
 
-        Scanner scanner = new Scanner(System.in);
+        Scanner scannerOption = new Scanner(System.in);
+        Scanner scannerName = new Scanner(System.in);
+        Scanner scannerLobby = new Scanner(System.in);
 
         while (true) {
             System.out.println("Choose an option:");
             System.out.println("Start Game: 1");
             System.out.println("Refresh Player List: 2");
-            System.out.println("Exit the game: 3\n");
+            System.out.println("Register to Game: 3");
+            System.out.println("Exit the game: 4\n");
 
             // Read user input
-            int choice = scanner.nextInt();
+            int choice = scannerOption.nextInt();
 
             // Process user input
             switch (choice) {
                 case 1:
                     // ----------------------------------------------
                     // Create Alcatraz instances and add move listeners
-                    if(allClients.size() > 1) {
+                   /* if(allClients.size() > 1) {
                         Alcatraz[] alcatrazInstances = new Alcatraz[allClients.size()];
                         Alcatraz alcatraz = new Alcatraz();
 
@@ -93,35 +95,74 @@ public class PlayerServer {
                         System.out.println("Game started");
                     }else{
                         System.out.println("Too few player to start - try later");
-                    }
+                    }*/
                     break;
                 case 2:
                     allClients = refreshRMI(args[0]);
                     System.out.println("Players in lobby: " + allClients.size());
                     break;
                 case 3:
-                    System.out.println("Exiting the program. Goodbye!");
-                    System.exit(0); // Terminate the program
-                    break;
-                case 4:
+
                     try {
-                        // Lookup the remote object from the RMI registry
-                        HelloInterface hello = (HelloInterface) Naming.lookup("rmi://localhost/HelloServer");
+                        // Lookup the remote object from the ServerRMI registry
+                        ServerRMIInterface serverObject = (ServerRMIInterface) Naming.lookup("rmi://localhost:1099/Server1");
 
-                        // Call the remote method
-                        String message = hello.sayHello();
+                        while(true){
+                            System.out.println("Type in your name to register, or exit to leave:");
+                            String playerName = scannerName.nextLine();
 
-                        // Display the result
-                        System.out.println("Message from server: " + message);
+                            if(playerName.equalsIgnoreCase("exit")) {
+                                System.out.println("Exiting the program. Goodbye!");
+                                break;
+                            }
+                            // Call the remote method
+                            int playerId = serverObject.register(playerName);
+
+                            // Display the result
+                            if(playerId == -1){
+                                System.out.println("Name already exists!");
+                            }else{
+                                player = new Player(playerId);
+                                player.setName(playerName);
+                                System.out.println("Message from server: Your ID is " + playerId);
+
+                                    System.out.println("You are in the lobby.");
+                                    System.out.println("Press 1 to leave,");
+                                    System.out.println("Press 2 to start the game: ");
+                                    int lobbyChoice = scannerLobby.nextInt();
+
+                                    switch (lobbyChoice){
+                                        case 1:
+                                            serverObject.deRegister(player);
+                                            break;
+                                        case 2:
+                                            List<Player> playerList = serverObject.startGame();
+                                            for(Player tempPlayer : playerList){
+                                                System.out.println(tempPlayer.getName());
+                                            }
+                                            break;
+                                        default:
+                                            System.out.println("Invalid option. Please choose a valid option.");
+                                            break;
+                                    }
+                            }
+                        }
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
+                    break;
+                case 4:
+                    System.out.println("Exiting the program. Goodbye!");
+                    scannerName.close();
+                    scannerOption.close();
+                    scannerLobby.close();
+
+                    System.exit(0); // Terminate the program
                     break;
                 default:
                     System.out.println("Invalid option. Please choose a valid option.");
             }
         }
-
     }
 
     class AlcatrazMoveListener implements MoveListener {
@@ -151,19 +192,19 @@ public class PlayerServer {
         }
     }
 
-    private static List<PlayerService> refreshRMI(String myId) throws RemoteException {
+    private static List<Player> refreshRMI(String myId) throws RemoteException {
         int id = Integer.parseInt(myId);
-        PlayerService playerServiceClient;
+        Player playerServiceClient;
         //playerServiceClient.initPlayer("Player_"+myId, id);
 
-        List<PlayerService> tmpPlayerServiceClient = new ArrayList<>();
+        List<Player> tmpPlayerServiceClient = new ArrayList<>();
         
         for(int x=1; x<5; x++) {
             /*if (id == x){
                 continue;
             }*/
             try {
-                playerServiceClient = (PlayerService) Naming.lookup("rmi://localhost:1099/NumberService" + x);
+                playerServiceClient = (Player) Naming.lookup("rmi://localhost:1099/NumberService" + x);
                 tmpPlayerServiceClient.add(playerServiceClient);
 
                 System.out.println("Player_"+x + " up and running");

@@ -18,7 +18,7 @@ public class NumberServer {
     public static void main(String[] args) throws RemoteException, MalformedURLException {
         List<PlayerService> allClients = new ArrayList<>();
 
-        PlayerService playerService = new at.falb.fh.vtsys.PlayerServiceImpl();
+        PlayerService playerService = new client.PlayerServiceImpl();
         Registry registry;
         try {
             registry = LocateRegistry.createRegistry(1099);

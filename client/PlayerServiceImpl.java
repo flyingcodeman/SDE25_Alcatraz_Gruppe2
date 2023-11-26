@@ -1,6 +1,5 @@
-package server;
+package client;
 
-import at.falb.fh.vtsys.PlayerService;
 import at.falb.games.alcatraz.api.Player;
 
 import java.rmi.RemoteException;
