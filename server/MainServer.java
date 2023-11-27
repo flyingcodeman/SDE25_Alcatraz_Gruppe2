@@ -15,35 +15,48 @@ import java.util.List;
 
 import server.ServerRMI;
 
+import static java.lang.Integer.parseInt;
+
 
 public class MainServer extends UnicastRemoteObject implements ServerRMIInterface {
     ServerRMI serverRMI = new ServerRMI();
+    static SpreadService spreadService;
 
-    private List<Player> players = new ArrayList<>();
+    //public static List<Player> players = new ArrayList<>();
+    public static Lobby<Player> players = new Lobby<Player>();
 
     // Constructor
     public MainServer() throws RemoteException {
         super();
     }
     @Override
-    public int register(String name) throws RemoteException {
+    public int register(String name) throws RemoteException, SpreadException {
+        spreadService.registerPlayer(name);
+
+        Player newPlayer = registerPlayer(name);
+        if (newPlayer == null) return -1;
+
+        return newPlayer.getId();
+    }
+
+    public static Player registerPlayer(String name) {
         for(Player player : players){
             if (name.equals(player.getName())) {
                 System.out.println("Value exists in the object list!");
-                return -1;
+                return null;
             }
         }
         Player newPlayer = new Player(players.size()+1);
         newPlayer.setName(name);
         players.add(newPlayer);
-        System.out.println(players);
-        return newPlayer.getId();
+        System.out.println("Log players in register method: " + players);
+        return newPlayer;
     }
 
 
     @Override
-    public boolean deRegister(Player player) throws RemoteException {
-
+    public boolean deRegister(Player player) throws RemoteException, SpreadException {
+        //spreadService.sendPlayerList(players);
         return players.remove(player);
     }
 
@@ -53,14 +66,14 @@ public class MainServer extends UnicastRemoteObject implements ServerRMIInterfac
     }
 
     public static void main(String[] args) throws UnknownHostException, SpreadException {
-		SpreadService spreadService = new SpreadService("service"+args[0]);
+		spreadService = new SpreadService("service"+args[0]);
 
         try {
             // Create and export the remote object
             MainServer server = new MainServer();
 
             // Create the RMI registry on port 1099
-            Registry registry = LocateRegistry.createRegistry(1099);
+            Registry registry = LocateRegistry.createRegistry(parseInt(args[1]));
 
             // Bind the remote object to the RMI registry
             registry.rebind("Server"+args[0], server);
@@ -70,5 +83,4 @@ public class MainServer extends UnicastRemoteObject implements ServerRMIInterfac
             e.printStackTrace();
         }
 	}
-
 }

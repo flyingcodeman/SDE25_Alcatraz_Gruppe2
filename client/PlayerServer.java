@@ -105,7 +105,7 @@ public class PlayerServer {
 
                     try {
                         // Lookup the remote object from the ServerRMI registry
-                        ServerRMIInterface serverObject = (ServerRMIInterface) Naming.lookup("rmi://localhost:1099/Server1");
+                        ServerRMIInterface serverObject = (ServerRMIInterface) Naming.lookup("rmi://localhost:1098/Server1");
 
                         while(true){
                             System.out.println("Type in your name to register, or exit to leave:");
