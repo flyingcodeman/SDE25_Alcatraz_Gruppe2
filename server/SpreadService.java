@@ -1,89 +1,145 @@
 package server;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.List;
 
 //import com.sun.xml.internal.ws.resources.SenderMessages;
 
+import at.falb.games.alcatraz.api.Player;
+import server.spread.messagetypes.DeRegisterMessage;
+import server.spread.messagetypes.RegisterMessage;
+import server.spread.messagetypes.StartGameMessage;
+import server.spread.messagetypes.UpdateLobbyMessage;
 import spread.AdvancedMessageListener;
 import spread.SpreadConnection;
 import spread.SpreadException;
 import spread.SpreadGroup;
 import spread.SpreadMessage;
 
-public class SpreadService implements AdvancedMessageListener{
+public class SpreadService implements AdvancedMessageListener, Serializable{
 	SpreadConnection connection;
 	SpreadGroup group;
 	String serviceName;
+	String myPrivateId;
 	
 	public SpreadService(String serviceName) throws UnknownHostException, SpreadException {
 		this.serviceName = serviceName;
 		this.connection = new SpreadConnection();
 		this.connection.connect(InetAddress.getByName("localhost"), 0, serviceName, true, true);
 		this.connection.add(this);
+		myPrivateId = this.connection.getPrivateGroup().toString();
 		
 		group = new SpreadGroup();
 		group.join(connection, "group");
 	}
 
-	public void sendMsg(CustomMsg msg) throws SpreadException{
+	public void registerPlayer(String playerName) throws SpreadException{
 		SpreadMessage message = new SpreadMessage();
-        message.setObject(msg);
+		message.setObject(new RegisterMessage(playerName));
+		message.setType((short) 1); // sync
+		message.addGroup(group);
+		message.setSafe();
+		message.setSelfDiscard(true);
+		connection.multicast(message);
+	}
+
+	public void deRegisterPlayer(Player player) throws SpreadException{
+		SpreadMessage message = new SpreadMessage();
+		message.setObject(new DeRegisterMessage(player));
+		message.setType((short) 1); // sync
+		message.addGroup(group);
+		message.setSafe();
+		message.setSelfDiscard(true);
+		connection.multicast(message);
+	}
+
+	public void sendLobby(Lobby<Player> playerList) throws SpreadException{
+		SpreadMessage message = new SpreadMessage();
+		System.out.println("Log in sendPlayerList: " + playerList);
+        message.setObject(new UpdateLobbyMessage(playerList));
         message.setType((short) 1); // sync
         message.addGroup(group);
         message.setSafe();
+		message.setSelfDiscard(true);
         connection.multicast(message);
 	}
 	
 	@Override
-	public void membershipMessageReceived(SpreadMessage arg0) {
-		try {
-			CustomMsg customMsg = (CustomMsg) convertByteArrayToObject(arg0.getData());
-			System.out.println("SPREAD output from" + this.serviceName + ": "+customMsg.getData());
-		} catch (SpreadException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}	
+	public void membershipMessageReceived(SpreadMessage msg) {
+		if(msg.getMembershipInfo().isCausedByJoin()){
+			System.out.println(msg.getMembershipInfo().getJoined());
+
+				if(msg.getMembershipInfo().getJoined().toString().equals(myPrivateId)){
+					System.out.println("this is my own message");
+					return;
+				}
+
+			try {
+				sendLobby(MainServer.players);
+			} catch (SpreadException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		//CustomMsg customMsg = (CustomMsg) convertByteArrayToObject(arg0.getData());
+		System.out.println("SPREAD output from membershiptMessage" + this.serviceName);
 	}
 
 	@Override
-	public void regularMessageReceived(SpreadMessage arg0) {
-		
-		try {
-			CustomMsg customMsg = (CustomMsg) convertByteArrayToObject(arg0.getData());
-			System.out.println("SPREAD output from " + this.serviceName + ": "+customMsg.getData());
-		} catch (SpreadException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}	
+	public void regularMessageReceived(SpreadMessage msg) {
+
+		if(deserializeList(msg.getData()) != null){
+				Object messageData = deserializeList(msg.getData());
+				if(messageData instanceof RegisterMessage){
+					//TODO: logic to ignore message - player already registered
+					String newPlayerName = ( (RegisterMessage) messageData).getPlayerName();
+					MainServer.registerPlayer( newPlayerName);
+				}else if(messageData instanceof  DeRegisterMessage){
+					// deregister
+				}else if(messageData instanceof StartGameMessage){
+					//startGame
+				}else if(messageData instanceof UpdateLobbyMessage){
+
+					MainServer.players = ((UpdateLobbyMessage) messageData).getUpdateLobby();
+					System.out.println("SPREAD output from UPDATELOBBY " + this.serviceName + " "  + MainServer.players);
+				}
+
+			System.out.println("SPREAD output from " + this.serviceName + "regularMsg" + MainServer.players);
+		}else {
+			System.out.println("SPREAD output from " + this.serviceName + "regularMsg" + "ERROR while receiving Spread MSG!!!");
+		}
 	}
-	
-	private Object convertByteArrayToObject(byte[] data) throws SpreadException {
-		ByteArrayInputStream var1 = new ByteArrayInputStream(data);
 
-		ObjectInputStream var2;
-		try {
-			var2 = new ObjectInputStream(var1);
-		} catch (IOException var8) {
-			throw new SpreadException("ObjectInputStream(): " + var8);
-		}
+	public static byte[] serializeList(List<? extends Serializable> objectList) {
+		try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			 ObjectOutputStream oos = new ObjectOutputStream(bos)) {
 
-		Object var3;
-		try {
-			var3 = var2.readObject();
-		} catch (ClassNotFoundException | IOException var6) {
-			throw new SpreadException("readObject(): " + var6);
-		}
+			// Serialize the list of objects
+			oos.writeObject(objectList);
 
-		try {
-			var2.close();
-			var1.close();
-			return var3;
-		} catch (IOException var5) {
-			throw new SpreadException("close/close(): " + var5);
+			// Return the byte array
+			return bos.toByteArray();
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			// Handle the exception as needed
+			return null;
 		}
-    }
+	}
+
+	@SuppressWarnings("unchecked")
+	public static Object deserializeList(byte[] data) {
+		try (ByteArrayInputStream bis = new ByteArrayInputStream(data);
+			 ObjectInputStream ois = new ObjectInputStream(bis)) {
+
+			// Deserialize the byte array to a list of objects
+			return (Object) ois.readObject();
+
+		} catch (IOException | ClassNotFoundException e) {
+			e.printStackTrace();
+			// Handle the exception as needed
+			return null;
+		}
+	}
 }
