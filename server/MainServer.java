@@ -80,7 +80,7 @@ public class MainServer extends UnicastRemoteObject implements ServerRMIInterfac
 
     @Override
     public List<Player> startGame() throws RemoteException, SpreadException {
-        if(MainServer.players.size() >= 2){
+        if(MainServer.players.size() >= 2 && !gameStarted){
             spreadService.startGame();
             gameStarted = true;
             return players;

@@ -93,53 +93,57 @@ public class PlayerServerImpl extends UnicastRemoteObject implements MoveListene
 
                                 // Startup own RMI P2P connection
                                 initClientRMI(String.valueOf(player.getId()));
+                                boolean stayInLobby = true;
+                                while(stayInLobby){
+                                    System.out.println("You are in the lobby.");
+                                    System.out.println("Press 1 to leave,");
+                                    System.out.println("Press 2 to start the game: ");
+                                    int lobbyChoice = scannerLobby.nextInt();
 
-                                System.out.println("You are in the lobby.");
-                                System.out.println("Press 1 to leave,");
-                                System.out.println("Press 2 to start the game: ");
-                                int lobbyChoice = scannerLobby.nextInt();
-
-                                switch (lobbyChoice){
-                                    case 1:
-                                        serverObject.deRegister(player);
-                                        break;
-                                    case 2:
-                                        serverObject = findAvailableServer();
-                                        if(serverObject == null){
-                                            System.exit(0);
-                                        }
-                                        allClients = serverObject.startGame();
-                                        if(allClients == null){
-                                            System.out.println("Not enough players in lobby, wait for others!");
-                                            //TODO: deregister player or escape untill startGame
+                                    switch (lobbyChoice){
+                                        case 1:
+                                            serverObject.deRegister(player);
+                                            stayInLobby = false;
                                             break;
-                                        }
-
-
-                                        PlayerServerImpl game = new PlayerServerImpl();
-                                        alcatraz = new Alcatraz();
-                                        System.out.println(allClients.size());
-                                        alcatraz.init(allClients.size(),myID);
-                                        alcatraz.addMoveListener(game);
-                                        alcatraz.showWindow();
-                                        alcatraz.start();
-
-                                        for(Player client : allClients){
-                                            if(client.getId() == myID){
-                                                continue;
+                                        case 2:
+                                            serverObject = findAvailableServer();
+                                            if(serverObject == null){
+                                                System.exit(0);
                                             }
-                                            try {
-                                                PlayerServer currentPlayer = getRMIPlayer(client.getId());
-                                                currentPlayer.startGame(allClients);
-                                            } catch (RemoteException e) {
-                                                throw new RuntimeException(e);
+                                            allClients = serverObject.startGame();
+                                            if(allClients == null){
+                                                System.out.println("Not enough players in lobby, wait for others!");
+                                                //TODO: deregister player or escape untill startGame
+                                                break;
                                             }
-                                        }
-                                        break;
-                                    default:
-                                        System.out.println("Invalid option. Please choose a valid option.");
-                                        break;
+
+
+                                            PlayerServerImpl game = new PlayerServerImpl();
+                                            alcatraz = new Alcatraz();
+                                            System.out.println(allClients.size());
+                                            alcatraz.init(allClients.size(),myID);
+                                            alcatraz.addMoveListener(game);
+                                            alcatraz.showWindow();
+                                            alcatraz.start();
+
+                                            for(Player client : allClients){
+                                                if(client.getId() == myID){
+                                                    continue;
+                                                }
+                                                try {
+                                                    PlayerServer currentPlayer = getRMIPlayer(client.getId());
+                                                    currentPlayer.startGame(allClients);
+                                                } catch (RemoteException e) {
+                                                    throw new RuntimeException(e);
+                                                }
+                                            }
+                                            break;
+                                        default:
+                                            System.out.println("Invalid option. Please choose a valid option.");
+                                            break;
+                                    }
                                 }
+
                             }
                         }
                     } catch (Exception e) {
@@ -219,28 +223,32 @@ public class PlayerServerImpl extends UnicastRemoteObject implements MoveListene
             if (p.getId() == myID){
                 continue;
             }
-            try {
-                // Show own move in gui
-                //TODO: could be removed
-                // Send move to other players
-                PlayerServer playertmp = (PlayerServer) Naming.lookup("rmi://localhost:1099/player" + p.getId());
-                System.out.println("Send move to Opponent " + "rmi://localhost:1099/player" + p.getId());
-                playertmp.sendMove(player, prisoner, rowOrCol, row, col);
 
-            } catch (NotBoundException e) {
-                System.out.println("Player " + p.getId() + " not reachable");
-            } catch (MalformedURLException | RemoteException e) {
-                //e.printStackTrace();
-            } catch (IllegalMoveException e) {
-                throw new RuntimeException(e);
+            int retryCounter = 0;
+            while(true){
+                if(retryCounter == 5){
+                    System.exit(0);
+                }
+                try {
+                    PlayerServer playertmp = (PlayerServer) Naming.lookup("rmi://localhost:1099/player" + p.getId());
+                    System.out.println("Send move to Opponent " + "rmi://localhost:1099/player" + p.getId());
+                    playertmp.sendMove(player, prisoner, rowOrCol, row, col);
+                    break;
+                } catch (NotBoundException | MalformedURLException | RemoteException e) {
+                    System.out.println("Player " + p.getId() + " not reachable");
+                    try {
+                        retryCounter += 1;
+                        System.out.println("Retrying every 4sec, " + retryCounter + " of 5!");
+                        Thread.sleep(4000);
+                    } catch (InterruptedException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                } catch (IllegalMoveException e) {
+                    throw new RuntimeException(e);
+                }
             }
+
         }
-    }
-
-    @Override
-    public void helloWorld() throws RemoteException {
-        System.out.println("Hello from implementation");
-
     }
 
     @Override
@@ -258,13 +266,14 @@ public class PlayerServerImpl extends UnicastRemoteObject implements MoveListene
     @Override
     public void sendMove(Player player, Prisoner prisoner, int rowOrCol, int row, int col) throws IllegalMoveException {
         System.out.println("This method should be called at opponent");
+
         alcatraz.doMove(player, prisoner, rowOrCol, row, col);
         //System.out.println("Move received: " + player.getName() + " Prisoner: " + prisoner.getId() + " Row/Col:" + rowOrCol + " Row: " + row + " Col:" +col);
     }
 
     @Override
     public void gameWon(Player player) {
-        System.out.println("Player " + /*player.getId() +*/ " wins.");
+        System.out.println("Player " + player.getId() + " wins.");
     }
 
 

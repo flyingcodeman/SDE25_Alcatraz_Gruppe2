@@ -9,8 +9,6 @@ import java.rmi.RemoteException;
 import java.util.List;
 
 interface PlayerServer extends Remote {
-
-    void helloWorld() throws RemoteException;
     void startGame(List<Player> players) throws RemoteException;
     void sendMove(Player player, Prisoner prisoner, int rowOrCol, int row, int col) throws IllegalMoveException, RemoteException;
 }
