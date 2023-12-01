@@ -11,5 +11,5 @@ public interface ServerRMIInterface extends java.rmi.Remote {
 
     boolean deRegister(Player player) throws java.rmi.RemoteException, SpreadException;
 
-    List<Player> startGame() throws java.rmi.RemoteException;
+    List<Player> startGame() throws java.rmi.RemoteException, SpreadException;
 }

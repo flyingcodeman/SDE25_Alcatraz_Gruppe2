@@ -65,6 +65,17 @@ public class SpreadService implements AdvancedMessageListener, Serializable{
 		message.setSelfDiscard(true);
         connection.multicast(message);
 	}
+
+	public void startGame() throws  SpreadException{
+		SpreadMessage message = new SpreadMessage();
+		System.out.println("Log in sendPlayerList: " + " game started.");
+		message.setObject(new StartGameMessage(MainServer.players));
+		message.setType((short) 1); // sync
+		message.addGroup(group);
+		message.setSafe();
+		message.setSelfDiscard(true);
+		connection.multicast(message);
+	}
 	
 	@Override
 	public void membershipMessageReceived(SpreadMessage msg) {
@@ -92,13 +103,16 @@ public class SpreadService implements AdvancedMessageListener, Serializable{
 		if(deserializeList(msg.getData()) != null){
 				Object messageData = deserializeList(msg.getData());
 				if(messageData instanceof RegisterMessage){
-					//TODO: logic to ignore message - player already registered
 					String newPlayerName = ( (RegisterMessage) messageData).getPlayerName();
 					MainServer.registerPlayer( newPlayerName);
 				}else if(messageData instanceof  DeRegisterMessage){
 					// deregister
+					Player playToRemove = ( (DeRegisterMessage) messageData).getPlayerToRemove();
+					MainServer.deRegisterPlayer( playToRemove);
 				}else if(messageData instanceof StartGameMessage){
 					//startGame
+					MainServer.gameStarted = true;
+					MainServer.players = ( (StartGameMessage) messageData).getFinalLobby();
 				}else if(messageData instanceof UpdateLobbyMessage){
 
 					MainServer.players = ((UpdateLobbyMessage) messageData).getUpdateLobby();

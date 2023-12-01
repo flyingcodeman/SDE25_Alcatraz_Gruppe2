@@ -6,6 +6,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -14,15 +15,12 @@ import java.io.Serializable;
 
 import at.falb.games.alcatraz.api.*;
 import interfaces.ServerRMIInterface;
+import spread.SpreadException;
 
-interface PlayerServer extends java.rmi.Remote {
-    void sendMove(Player player, Prisoner prisoner, int rowOrCol, int row, int col) throws IllegalMoveException;
-}
-
-public class PlayerServerImpl implements MoveListener, PlayerServer, Serializable {
+public class PlayerServerImpl extends UnicastRemoteObject implements MoveListener, PlayerServer, Serializable {
     // To be filled from the server
-    private static final List<Player> allClients = new ArrayList<>();
-    private static Alcatraz alcatraz = new Alcatraz();
+    private static List<Player> allClients = new ArrayList<>();
+    private static Alcatraz alcatraz;
 
     private static Integer myID;
 
@@ -31,20 +29,24 @@ public class PlayerServerImpl implements MoveListener, PlayerServer, Serializabl
         super();
     }
 
-    public static void main(String[] args) throws RemoteException, MalformedURLException {
+    public static void main(String[] args) throws RemoteException, MalformedURLException, SpreadException {
         // Todo: Remove after Server connection works
         myID = Integer.parseInt(args[0]);
-        // Start up the player
+        // Start up the playerm
         init(args);
     }
 
-    public static void init(String[] args) throws RemoteException {
+    public static void init(String[] args) throws SpreadException, RemoteException {
         Player player;
         Player playerOp;
 
         // Startup own RMI P2P connection
         // Todo: To be switched after registration at server!
-        initClientRMI(String.valueOf(args[0]));
+        try {
+            initClientRMI(String.valueOf(args[0]));
+        } catch (RemoteException e) {
+            throw new RuntimeException(e);
+        }
 
         Scanner scannerOption = new Scanner(System.in);
         Scanner scannerName = new Scanner(System.in);
@@ -53,18 +55,21 @@ public class PlayerServerImpl implements MoveListener, PlayerServer, Serializabl
         while (true) {
             System.out.println("Choose an option:");
             System.out.println("Register to Game: 1");
-            System.out.println("Start Game: 2");
-            System.out.println("Exit the program: 3\n");
+            System.out.println("Exit the program: 2\n");
 
             // Read user input
             int choice = scannerOption.nextInt();
+
 
             // Process user input
             switch (choice) {
                 case 1:
                     try {
                         // Lookup the remote object from the ServerRMI registry
-                        ServerRMIInterface serverObject = (ServerRMIInterface) Naming.lookup("rmi://localhost:1098/Server1");
+                        ServerRMIInterface serverObject = findAvailableServer();
+                        if(serverObject == null){
+                            System.exit(0);
+                        }
 
                         while(true){
                             System.out.println("Type in your name to register, or exit to leave:");
@@ -99,9 +104,36 @@ public class PlayerServerImpl implements MoveListener, PlayerServer, Serializabl
                                         serverObject.deRegister(player);
                                         break;
                                     case 2:
-                                        List<Player> playerList = serverObject.startGame();
-                                        for(Player tempPlayer : playerList){
-                                            System.out.println(tempPlayer.getName());
+                                        serverObject = findAvailableServer();
+                                        if(serverObject == null){
+                                            System.exit(0);
+                                        }
+                                        allClients = serverObject.startGame();
+                                        if(allClients == null){
+                                            System.out.println("Not enough players in lobby, wait for others!");
+                                            //TODO: deregister player or escape untill startGame
+                                            break;
+                                        }
+
+
+                                        PlayerServerImpl game = new PlayerServerImpl();
+                                        alcatraz = new Alcatraz();
+                                        System.out.println(allClients.size());
+                                        alcatraz.init(allClients.size(),myID);
+                                        alcatraz.addMoveListener(game);
+                                        alcatraz.showWindow();
+                                        alcatraz.start();
+
+                                        for(Player client : allClients){
+                                            if(client.getId() == myID){
+                                                continue;
+                                            }
+                                            try {
+                                                PlayerServer currentPlayer = getRMIPlayer(client.getId());
+                                                currentPlayer.startGame(allClients);
+                                            } catch (RemoteException e) {
+                                                throw new RuntimeException(e);
+                                            }
                                         }
                                         break;
                                     default:
@@ -114,40 +146,7 @@ public class PlayerServerImpl implements MoveListener, PlayerServer, Serializabl
                         //e.printStackTrace();
                     }
                     break;
-
                 case 2:
-                    // Test like playerlist came from server
-                    player = new Player(Integer.parseInt(args[0]));
-                    player.setName("Player_"+args[0]);
-                    if(Objects.equals(args[0], "1")){
-                        playerOp = new Player(2);
-                        playerOp.setName("Player_2");
-                    }else{
-                        playerOp = new Player(1);
-                        playerOp.setName("Player_1");
-                    }
-                    allClients.add(player);
-                    allClients.add(playerOp);
-                    // ----------------------------------------------
-                    // Take List and create remote object list
-                    PlayerServerImpl game = new PlayerServerImpl();
-                    checkOtherPlayersRMI(String.valueOf(player.getId()));
-                    // ----------------------------------------------
-                    // Create Alcatraz instances and add move listeners
-                    if(allClients.size() > 1) {
-                        alcatraz = new Alcatraz();
-                        System.out.println(allClients.size());
-                        alcatraz.init(allClients.size(),player.getId());
-                        alcatraz.addMoveListener(game);
-                        alcatraz.showWindow();
-                        alcatraz.start();
-                        System.out.println("Game started");
-                    }else{
-                        System.out.println("Too few player to start - try later");
-                    }
-                    break;
-
-                case 3:
                     System.out.println("Exiting the program. Goodbye!");
                     scannerName.close();
                     scannerOption.close();
@@ -161,7 +160,27 @@ public class PlayerServerImpl implements MoveListener, PlayerServer, Serializabl
         }
     }
 
-    private static void initClientRMI(String myId) throws RemoteException {
+    private static ServerRMIInterface findAvailableServer() {
+        ServerRMIInterface serverObject = null;
+        for(int i = 1; i <= 3; i++){
+            try{
+                serverObject = getServerObject(i);
+
+            }catch (Exception e){
+                System.out.println(e);
+            }
+            if(serverObject != null){
+                break;
+            }
+        }
+        return serverObject;
+    }
+
+    private static ServerRMIInterface getServerObject(int serverIndex) throws MalformedURLException, NotBoundException, RemoteException {
+        return (ServerRMIInterface) Naming.lookup("rmi://localhost:1098/Server" + serverIndex);
+    }
+
+    private static void initClientRMI(String myId) throws RemoteException  {
         PlayerServer tmpPlayerServer = new PlayerServerImpl();
         Registry registry;
         try {
@@ -178,21 +197,19 @@ public class PlayerServerImpl implements MoveListener, PlayerServer, Serializabl
         System.out.println("player " + myId + " successfully started.\n");
     }
 
-    private static void checkOtherPlayersRMI(String myId) throws RemoteException {
+    private static PlayerServer getRMIPlayer(int playerId) throws RemoteException {
         // Check if clients from server list are reachable
-        for (Player player : PlayerServerImpl.allClients) {
-            // SKip own ID
-            if (player.getId() == Integer.parseInt(myId)) { continue; }
-
+        PlayerServer playerOp = null;
             try {
-                PlayerServerImpl playerOp = (PlayerServerImpl) Naming.lookup("rmi://localhost:1099/player" + player.getId());
-                System.out.println("Player_" + player.getId() + " up and running");
+                playerOp = (PlayerServer) Naming.lookup("rmi://localhost:1099/player" + playerId);
+                System.out.println("Player_" + playerId + " up and running");
+
             } catch (NotBoundException e) {
-                System.out.println("Player " + player.getId() + " not reachable");
+                System.out.println("Player " + playerId + " not reachable");
             } catch (MalformedURLException | RemoteException e) {
                 //e.printStackTrace();
             }
-        }
+        return playerOp;
     }
     @Override
     public void moveDone(Player player, Prisoner prisoner, int rowOrCol, int row, int col) {
@@ -204,7 +221,7 @@ public class PlayerServerImpl implements MoveListener, PlayerServer, Serializabl
             }
             try {
                 // Show own move in gui
-                alcatraz.doMove(p, prisoner, rowOrCol, row, col);
+                //TODO: could be removed
                 // Send move to other players
                 PlayerServer playertmp = (PlayerServer) Naming.lookup("rmi://localhost:1099/player" + p.getId());
                 System.out.println("Send move to Opponent " + "rmi://localhost:1099/player" + p.getId());
@@ -218,6 +235,23 @@ public class PlayerServerImpl implements MoveListener, PlayerServer, Serializabl
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    @Override
+    public void helloWorld() throws RemoteException {
+        System.out.println("Hello from implementation");
+
+    }
+
+    @Override
+    public void startGame(List <Player> allClients) throws RemoteException {
+        PlayerServerImpl game = new PlayerServerImpl();
+        alcatraz = new Alcatraz();
+        System.out.println(allClients.size());
+        alcatraz.init(allClients.size(),myID);
+        alcatraz.addMoveListener(game);
+        alcatraz.showWindow();
+        alcatraz.start();
     }
 
     @Override
