@@ -244,12 +244,13 @@ public class PlayerServerImpl extends UnicastRemoteObject implements MoveListene
     }
 
     @Override
-    public void startGame(List <Player> allClients) throws RemoteException {
-        PlayerServerImpl game = new PlayerServerImpl();
+    public void startGame(List <Player> allClientsFromServer) throws RemoteException {
+
+        allClients = allClientsFromServer;
         alcatraz = new Alcatraz();
         System.out.println(allClients.size());
         alcatraz.init(allClients.size(),myID);
-        alcatraz.addMoveListener(game);
+        alcatraz.addMoveListener(this);
         alcatraz.showWindow();
         alcatraz.start();
     }
