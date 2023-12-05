@@ -31,22 +31,14 @@ public class PlayerServerImpl extends UnicastRemoteObject implements MoveListene
 
     public static void main(String[] args) throws RemoteException, MalformedURLException, SpreadException {
         // Todo: Remove after Server connection works
-        myID = Integer.parseInt(args[0]);
+
         // Start up the playerm
-        init(args);
+        PlayerServerImpl game = new PlayerServerImpl();
+        game.init();
     }
 
-    public static void init(String[] args) throws SpreadException, RemoteException {
+    public void init() throws SpreadException, RemoteException {
         Player player;
-        Player playerOp;
-
-        // Startup own RMI P2P connection
-        // Todo: To be switched after registration at server!
-        try {
-            initClientRMI(String.valueOf(args[0]));
-        } catch (RemoteException e) {
-            throw new RuntimeException(e);
-        }
 
         Scanner scannerOption = new Scanner(System.in);
         Scanner scannerName = new Scanner(System.in);
@@ -59,7 +51,6 @@ public class PlayerServerImpl extends UnicastRemoteObject implements MoveListene
 
             // Read user input
             int choice = scannerOption.nextInt();
-
 
             // Process user input
             switch (choice) {
@@ -81,6 +72,7 @@ public class PlayerServerImpl extends UnicastRemoteObject implements MoveListene
                             }
                             // Call the remote method
                             int playerId = serverObject.register(playerName);
+                            setClientID(playerId);
 
                             // Display the result
                             if(playerId == -1){
@@ -89,7 +81,6 @@ public class PlayerServerImpl extends UnicastRemoteObject implements MoveListene
                                 player = new Player(playerId);
                                 player.setName(playerName);
                                 System.out.println("Message from server: Your ID is " + playerId);
-                                myID = playerId;
 
                                 // Startup own RMI P2P connection
                                 initClientRMI(String.valueOf(player.getId()));
@@ -110,6 +101,12 @@ public class PlayerServerImpl extends UnicastRemoteObject implements MoveListene
                                             if(serverObject == null){
                                                 System.exit(0);
                                             }
+                                            try {
+                                                initClientRMI(String.valueOf(myID));
+                                            } catch (RemoteException e) {
+                                                throw new RuntimeException(e);
+                                            }
+
                                             allClients = serverObject.startGame();
                                             if(allClients == null){
                                                 System.out.println("Not enough players in lobby, wait for others!");
@@ -117,12 +114,10 @@ public class PlayerServerImpl extends UnicastRemoteObject implements MoveListene
                                                 break;
                                             }
 
-
-                                            PlayerServerImpl game = new PlayerServerImpl();
                                             alcatraz = new Alcatraz();
                                             System.out.println(allClients.size());
                                             alcatraz.init(allClients.size(),myID);
-                                            alcatraz.addMoveListener(game);
+                                            alcatraz.addMoveListener(this);
                                             alcatraz.showWindow();
                                             alcatraz.start();
 
@@ -162,6 +157,10 @@ public class PlayerServerImpl extends UnicastRemoteObject implements MoveListene
                     System.out.println("Invalid option. Please choose a valid option.");
             }
         }
+    }
+
+    public void setClientID(int cID){
+        myID = cID;
     }
 
     private static ServerRMIInterface findAvailableServer() {
