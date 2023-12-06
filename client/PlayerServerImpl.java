@@ -220,8 +220,8 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
     public void moveDone(Player player, Prisoner prisoner, int rowOrCol, int row, int col) {
         System.out.println("moving " + prisoner + " to " + (rowOrCol == Alcatraz.ROW ? "row" : "col") + " " + (rowOrCol == Alcatraz.ROW ? row : col));
 
-        for (Player p : allClients) {
-            if (p.getId() == myID){
+        for (AlcatrazPlayer aPlayer : allClients) {
+            if (aPlayer.getId() == myID){
                 continue;
             }
 
@@ -231,12 +231,12 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                     System.exit(0);
                 }
                 try {
-                    PlayerServer playertmp = (PlayerServer) Naming.lookup("rmi://"+ MY_NETWORK + ":1099/player" + p.getId());
-                    System.out.println("Send move to Opponent " + "rmi://"+ MY_NETWORK +":1099/player" + p.getId());
+                    PlayerServer playertmp = (PlayerServer) Naming.lookup("rmi://"+ aPlayer.getPlayerIP() + ":1099/player" + aPlayer.getId());
+                    System.out.println("Send move to Opponent " + "rmi://"+ aPlayer.getPlayerIP() +":1099/player" + aPlayer.getId());
                     playertmp.sendMove(player, prisoner, rowOrCol, row, col);
                     break;
                 } catch (NotBoundException | MalformedURLException | RemoteException e) {
-                    System.out.println("Player " + p.getId() + " not reachable");
+                    System.out.println("Player " + aPlayer.getId() + " not reachable");
                     try {
                         retryCounter += 1;
                         System.out.println("Retrying every 4sec, " + retryCounter + " of 5!");
