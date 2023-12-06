@@ -8,6 +8,7 @@ import java.util.List;
 //import com.sun.xml.internal.ws.resources.SenderMessages;
 
 import at.falb.games.alcatraz.api.Player;
+import interfaces.Constants;
 import server.spread.messagetypes.DeRegisterMessage;
 import server.spread.messagetypes.RegisterMessage;
 import server.spread.messagetypes.StartGameMessage;
@@ -18,7 +19,7 @@ import spread.SpreadException;
 import spread.SpreadGroup;
 import spread.SpreadMessage;
 
-public class SpreadService implements AdvancedMessageListener, Serializable{
+public class SpreadService implements Constants, AdvancedMessageListener, Serializable{
 	SpreadConnection connection;
 	SpreadGroup group;
 	String serviceName;
@@ -27,7 +28,7 @@ public class SpreadService implements AdvancedMessageListener, Serializable{
 	public SpreadService(String serviceName) throws UnknownHostException, SpreadException {
 		this.serviceName = serviceName;
 		this.connection = new SpreadConnection();
-		this.connection.connect(InetAddress.getByName("localhost"), 0, serviceName, true, true);
+		this.connection.connect(InetAddress.getByName(NETWORK), 0, serviceName, true, true);
 		this.connection.add(this);
 		myPrivateId = this.connection.getPrivateGroup().toString();
 		

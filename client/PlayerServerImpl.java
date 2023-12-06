@@ -14,10 +14,11 @@ import java.util.Scanner;
 import java.io.Serializable;
 
 import at.falb.games.alcatraz.api.*;
+import interfaces.Constants;
 import interfaces.ServerRMIInterface;
 import spread.SpreadException;
 
-public class PlayerServerImpl extends UnicastRemoteObject implements MoveListener, PlayerServer, Serializable {
+public class PlayerServerImpl extends UnicastRemoteObject implements Constants, MoveListener, PlayerServer, Serializable {
     // To be filled from the server
     private static List<Player> allClients = new ArrayList<>();
     private static Alcatraz alcatraz;
@@ -180,7 +181,7 @@ public class PlayerServerImpl extends UnicastRemoteObject implements MoveListene
     }
 
     private static ServerRMIInterface getServerObject(int serverIndex) throws MalformedURLException, NotBoundException, RemoteException {
-        return (ServerRMIInterface) Naming.lookup("rmi://localhost:1098/Server" + serverIndex);
+        return (ServerRMIInterface) Naming.lookup("rmi://"+ NETWORK + ":1098/Server" + serverIndex);
     }
 
     private static void initClientRMI(String myId) throws RemoteException  {
@@ -204,7 +205,7 @@ public class PlayerServerImpl extends UnicastRemoteObject implements MoveListene
         // Check if clients from server list are reachable
         PlayerServer playerOp = null;
             try {
-                playerOp = (PlayerServer) Naming.lookup("rmi://localhost:1099/player" + playerId);
+                playerOp = (PlayerServer) Naming.lookup("rmi://"+ NETWORK + ":1099/player" + playerId);
                 System.out.println("Player_" + playerId + " up and running");
 
             } catch (NotBoundException e) {
@@ -229,8 +230,8 @@ public class PlayerServerImpl extends UnicastRemoteObject implements MoveListene
                     System.exit(0);
                 }
                 try {
-                    PlayerServer playertmp = (PlayerServer) Naming.lookup("rmi://localhost:1099/player" + p.getId());
-                    System.out.println("Send move to Opponent " + "rmi://localhost:1099/player" + p.getId());
+                    PlayerServer playertmp = (PlayerServer) Naming.lookup("rmi://"+ NETWORK + ":1099/player" + p.getId());
+                    System.out.println("Send move to Opponent " + "rmi://"+ NETWORK +":1099/player" + p.getId());
                     playertmp.sendMove(player, prisoner, rowOrCol, row, col);
                     break;
                 } catch (NotBoundException | MalformedURLException | RemoteException e) {
