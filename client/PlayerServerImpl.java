@@ -85,7 +85,11 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                                 System.out.println("Message from server: Your ID is " + playerId);
 
                                 // Startup own RMI P2P connection
-                                initClientRMI(String.valueOf(player.getId()));
+                                try {
+                                    initClientRMI(String.valueOf(myID));
+                                } catch (RemoteException e) {
+                                    throw new RuntimeException(e);
+                                }
                                 boolean stayInLobby = true;
                                 while(stayInLobby){
                                     System.out.println("You are in the lobby.");
@@ -103,11 +107,7 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                                             if(serverObject == null){
                                                 System.exit(0);
                                             }
-                                            try {
-                                                initClientRMI(String.valueOf(myID));
-                                            } catch (RemoteException e) {
-                                                throw new RuntimeException(e);
-                                            }
+
 
                                             allClients = serverObject.startGame();
                                             if(allClients == null){
