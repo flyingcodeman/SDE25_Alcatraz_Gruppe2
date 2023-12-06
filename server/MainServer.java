@@ -25,35 +25,25 @@ public class MainServer extends UnicastRemoteObject implements ServerRMIInterfac
     static boolean gameStarted;
 
     //public static List<Player> players = new ArrayList<>();
-    public static Lobby<Player> players = new Lobby<Player>();
+    public static Lobby<AlcatrazPlayer> players = new Lobby<AlcatrazPlayer>();
 
     // Constructor
     public MainServer() throws RemoteException {
         super();
     }
     @Override
-    public int register(String name) throws RemoteException, SpreadException {
-        spreadService.registerPlayer(name);
+    public int register(String name, String networkIP) throws RemoteException, SpreadException {
+        spreadService.registerPlayer(name, networkIP);
 
-        Player newPlayer = registerPlayer(name);
+        Player newPlayer = registerPlayer(name, networkIP);
         if (newPlayer == null) return -1;
 
         return newPlayer.getId();
     }
 
-    public static Player registerPlayer(String name) {
-        /*int highestId = 0;
-        for(Player player : players){
-            if(player.getId() > highestId){
-                highestId = player.getId();
-            }
-            if (name.equals(player.getName())) {
-                System.out.println("Value exists in the object list!");
-                return null;
-            }
-        }*/
+    public static Player registerPlayer(String name, String networkIP) {
 
-        Player newPlayer = new Player(players.size());
+        AlcatrazPlayer newPlayer = new AlcatrazPlayer(players.size(), networkIP);
         newPlayer.setName(name);
         players.add(newPlayer);
         System.out.println("Log players in register method: " + players);
@@ -79,7 +69,7 @@ public class MainServer extends UnicastRemoteObject implements ServerRMIInterfac
     }
 
     @Override
-    public List<Player> startGame() throws RemoteException, SpreadException {
+    public List<AlcatrazPlayer> startGame() throws RemoteException, SpreadException {
         if(MainServer.players.size() >= 2 && !gameStarted){
             spreadService.startGame();
             gameStarted = true;

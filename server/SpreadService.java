@@ -36,9 +36,9 @@ public class SpreadService implements Constants, AdvancedMessageListener, Serial
 		group.join(connection, "group");
 	}
 
-	public void registerPlayer(String playerName) throws SpreadException{
+	public void registerPlayer(String playerName, String playerIP) throws SpreadException{
 		SpreadMessage message = new SpreadMessage();
-		message.setObject(new RegisterMessage(playerName));
+		message.setObject(new RegisterMessage(playerName, playerIP));
 		message.setType((short) 1); // sync
 		message.addGroup(group);
 		message.setSafe();
@@ -56,7 +56,7 @@ public class SpreadService implements Constants, AdvancedMessageListener, Serial
 		connection.multicast(message);
 	}
 
-	public void sendLobby(Lobby<Player> playerList) throws SpreadException{
+	public void sendLobby(Lobby<AlcatrazPlayer> playerList) throws SpreadException{
 		SpreadMessage message = new SpreadMessage();
 		System.out.println("Log in sendPlayerList: " + playerList);
         message.setObject(new UpdateLobbyMessage(playerList));
@@ -105,7 +105,8 @@ public class SpreadService implements Constants, AdvancedMessageListener, Serial
 				Object messageData = deserializeList(msg.getData());
 				if(messageData instanceof RegisterMessage){
 					String newPlayerName = ( (RegisterMessage) messageData).getPlayerName();
-					MainServer.registerPlayer( newPlayerName);
+					String newPlayerIP = ( (RegisterMessage) messageData).getPlayerIP();
+					MainServer.registerPlayer( newPlayerName, newPlayerIP);
 				}else if(messageData instanceof  DeRegisterMessage){
 					// deregister
 					Player playToRemove = ( (DeRegisterMessage) messageData).getPlayerToRemove();

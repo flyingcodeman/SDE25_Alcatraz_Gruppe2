@@ -16,11 +16,12 @@ import java.io.Serializable;
 import at.falb.games.alcatraz.api.*;
 import interfaces.Constants;
 import interfaces.ServerRMIInterface;
+import server.AlcatrazPlayer;
 import spread.SpreadException;
 
 public class PlayerServerImpl extends UnicastRemoteObject implements Constants, MoveListener, PlayerServer, Serializable {
     // To be filled from the server
-    private static List<Player> allClients = new ArrayList<>();
+    private static List<AlcatrazPlayer> allClients = new ArrayList<>();
     private static Alcatraz alcatraz;
 
     private static Integer myID;
@@ -72,7 +73,7 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                                 break;
                             }
                             // Call the remote method
-                            int playerId = serverObject.register(playerName);
+                            int playerId = serverObject.register(playerName, MY_NETWORK);
                             setClientID(playerId);
 
                             // Display the result
@@ -122,12 +123,12 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                                             alcatraz.showWindow();
                                             alcatraz.start();
 
-                                            for(Player client : allClients){
+                                            for(AlcatrazPlayer client : allClients){
                                                 if(client.getId() == myID){
                                                     continue;
                                                 }
                                                 try {
-                                                    PlayerServer currentPlayer = getRMIPlayer(client.getId());
+                                                    PlayerServer currentPlayer = getRMIPlayer(client.getId(), client.getPlayerIP());
                                                     currentPlayer.startGame(allClients);
                                                 } catch (RemoteException e) {
                                                     throw new RuntimeException(e);
@@ -201,11 +202,11 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
         System.out.println("player " + myId + " successfully started.\n");
     }
 
-    private static PlayerServer getRMIPlayer(int playerId) throws RemoteException {
+    private static PlayerServer getRMIPlayer(int playerId, String clientIP) throws RemoteException {
         // Check if clients from server list are reachable
         PlayerServer playerOp = null;
             try {
-                playerOp = (PlayerServer) Naming.lookup("rmi://"+ MY_NETWORK + ":1099/player" + playerId);
+                playerOp = (PlayerServer) Naming.lookup("rmi://"+ clientIP + ":1099/player" + playerId);
                 System.out.println("Player_" + playerId + " up and running");
 
             } catch (NotBoundException e) {
@@ -252,7 +253,7 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
     }
 
     @Override
-    public void startGame(List <Player> allClientsFromServer) throws RemoteException {
+    public void startGame(List <AlcatrazPlayer> allClientsFromServer) throws RemoteException {
 
         allClients = allClientsFromServer;
         alcatraz = new Alcatraz();
