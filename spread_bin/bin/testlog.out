@@ -1,0 +1,10 @@
+[Sun 12 Nov 2023 15:52:05] disabling Dangerous Monitor Commands!
+[Sun 12 Nov 2023 15:52:05] Setting SO_REUSEADDR to auto
+[Sun 12 Nov 2023 15:52:05] Set runtime directory to '/var/run/spread'
+[Sun 12 Nov 2023 15:52:05] Conf_load_conf_file: My proc id (172.16.1.178) is not in configuration
+Exit caused by Alarm(EXIT)
+[Sun 12 Nov 2023 15:54:01] disabling Dangerous Monitor Commands!
+[Sun 12 Nov 2023 15:54:01] Setting SO_REUSEADDR to auto
+[Sun 12 Nov 2023 15:54:01] Set runtime directory to '/var/run/spread'
+[Sun 12 Nov 2023 15:54:01] Conf_load_conf_file: My proc id (172.16.1.178) is not in configuration
+Exit caused by Alarm(EXIT)
