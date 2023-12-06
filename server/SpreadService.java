@@ -28,7 +28,7 @@ public class SpreadService implements Constants, AdvancedMessageListener, Serial
 	public SpreadService(String serviceName) throws UnknownHostException, SpreadException {
 		this.serviceName = serviceName;
 		this.connection = new SpreadConnection();
-		this.connection.connect(InetAddress.getByName(SPREAD_DMEON), 0, serviceName, true, true);
+		this.connection.connect(InetAddress.getByName(SPREAD_DEMON), 0, serviceName, true, true);
 		this.connection.add(this);
 		myPrivateId = this.connection.getPrivateGroup().toString();
 		
