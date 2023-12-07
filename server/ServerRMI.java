@@ -4,26 +4,30 @@ import at.falb.games.alcatraz.api.Player;
 import interfaces.ServerRMIInterface;
 import spread.SpreadException;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.List;
 
-import static server.MainServer.deRegisterPlayer;
-import static server.MainServer.registerPlayer;
+import static server.MainServer.*;
 
-public class ServerRMI extends UnicastRemoteObject implements ServerRMIInterface {
+public class ServerRMI extends UnicastRemoteObject implements ServerRMIInterface, Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
+
     protected ServerRMI() throws RemoteException {
         super();
     }
 
     @Override
-    public int register(String name, String networkIP) throws RemoteException, SpreadException {
+    public AlcatrazPlayer register(String name, String networkIP) throws RemoteException, SpreadException {
         MainServer.spreadService.registerPlayer(name, networkIP);
 
-        Player newPlayer = registerPlayer(name, networkIP);
-        if (newPlayer == null) return -1;
+        AlcatrazPlayer newPlayer = registerPlayer(name, networkIP);
+        if (newPlayer == null) return null;
 
-        return newPlayer.getId();
+        return newPlayer;
     }
 
     @Override
@@ -35,9 +39,9 @@ public class ServerRMI extends UnicastRemoteObject implements ServerRMIInterface
 
     @Override
     public List<AlcatrazPlayer> startGame() throws RemoteException, SpreadException {
-        if(MainServer.players.size() >= 2 && !MainServer.gameStarted){
-            MainServer.spreadService.startGame();
-            MainServer.gameStarted = true;
+
+        MainServer.spreadService.startGame();
+        if(setGameStart()){
             return MainServer.players;
         }else{
             return null;

@@ -22,9 +22,9 @@ import spread.SpreadException;
 public class PlayerServerImpl extends UnicastRemoteObject implements Constants, MoveListener, PlayerServer, Serializable {
     // To be filled from the server
     private static List<AlcatrazPlayer> allClients = new ArrayList<>();
-    private static Alcatraz alcatraz;
 
-    private static Integer myID;
+    protected static AlcatrazPlayer clientPlayer;
+    private static Alcatraz alcatraz;
 
     // Constructor
     public PlayerServerImpl() throws RemoteException {
@@ -40,7 +40,7 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
     }
 
     public void init() throws SpreadException, RemoteException {
-        AlcatrazPlayer player;
+
 
         Scanner scannerOption = new Scanner(System.in);
         Scanner scannerName = new Scanner(System.in);
@@ -73,20 +73,17 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                                 break;
                             }
                             // Call the remote method
-                            int playerId = serverObject.register(playerName, MY_NETWORK);
-                            setClientID(playerId);
+                            clientPlayer = serverObject.register(playerName, MY_NETWORK);
 
                             // Display the result
-                            if(playerId == -1){
+                            if(clientPlayer == null){
                                 System.out.println("Name already exists!");
                             }else{
-                                player = new AlcatrazPlayer(playerId, MY_NETWORK);
-                                player.setName(playerName);
-                                System.out.println("Message from server: "+ playerName +" successfully registered!");
+                                System.out.println("Message from server: "+ clientPlayer.getName() +" successfully registered!");
 
                                 // Startup own RMI P2P connection
                                 try {
-                                    initClientRMI(String.valueOf(myID));
+                                    initClientRMI(clientPlayer.getName());
                                 } catch (RemoteException e) {
                                     throw new RuntimeException(e);
                                 }
@@ -99,7 +96,8 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
 
                                     switch (lobbyChoice){
                                         case 1:
-                                            serverObject.deRegister(player);
+                                            serverObject.deRegister(clientPlayer);
+                                            clientPlayer = null;
                                             stayInLobby = false;
                                             break;
                                         case 2:
@@ -112,23 +110,24 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                                             allClients = serverObject.startGame();
                                             if(allClients == null){
                                                 System.out.println("Not enough players in lobby, wait for others!");
-                                                //TODO: deregister player or escape untill startGame
                                                 break;
                                             }
 
+                                            System.out.println("Index: " + allClients.indexOf(clientPlayer));
                                             alcatraz = new Alcatraz();
                                             System.out.println(allClients.size());
-                                            alcatraz.init(allClients.size(),myID);
+                                            alcatraz.init(allClients.size(),allClients.indexOf(clientPlayer));
+                                            allClients.forEach(aPlayer -> alcatraz.getPlayer(allClients.indexOf(aPlayer)).setName(aPlayer.getName()));
                                             alcatraz.addMoveListener(this);
                                             alcatraz.showWindow();
                                             alcatraz.start();
 
                                             for(AlcatrazPlayer client : allClients){
-                                                if(client.getId() == myID){
+                                                if(client.getId() == clientPlayer.getId()){
                                                     continue;
                                                 }
                                                 try {
-                                                    PlayerServer currentPlayer = getRMIPlayer(client.getId(), client.getPlayerIP());
+                                                    PlayerServer currentPlayer = getRMIPlayer(client.getName(), client.getPlayerIP());
                                                     currentPlayer.startGame(allClients);
                                                 } catch (RemoteException e) {
                                                     throw new RuntimeException(e);
@@ -161,11 +160,8 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
         }
     }
 
-    public void setClientID(int cID){
-        myID = cID;
-    }
 
-    private ServerRMIInterface findAvailableServer() {
+    private static ServerRMIInterface findAvailableServer() {
         ServerRMIInterface serverObject = null;
         for(int i = 1; i <= 3; i++){
             try{
@@ -181,11 +177,11 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
         return serverObject;
     }
 
-    private ServerRMIInterface getServerObject(int serverIndex) throws MalformedURLException, NotBoundException, RemoteException {
-        return (ServerRMIInterface) Naming.lookup("rmi://"+ MY_NETWORK + ":"+ SERVER_PORT +"/Server" + serverIndex);
+    private static ServerRMIInterface getServerObject(int serverIndex) throws MalformedURLException, NotBoundException, RemoteException {
+        return (ServerRMIInterface) Naming.lookup("rmi://"+ MY_NETWORK + ":" + SERVER_PORT + "/Server" + serverIndex);
     }
 
-    private void initClientRMI(String myId) throws RemoteException  {
+    private static void initClientRMI(String playerName) throws RemoteException  {
         PlayerServer tmpPlayerServer = new PlayerServerImpl();
         Registry registry;
         try {
@@ -197,20 +193,20 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                 throw new RuntimeException(e);
             }
         }
-        System.out.println("myID: "+myId);
-        registry.rebind("player" + myId, tmpPlayerServer);
-        System.out.println("player " + myId + " successfully started.\n");
+
+        registry.rebind("player" + playerName, tmpPlayerServer);
+        System.out.println("player " + playerName + " RMI successfully started.\n");
     }
 
-    private PlayerServer getRMIPlayer(int playerId, String clientIP) throws RemoteException {
+    private static PlayerServer getRMIPlayer(String playerName, String clientIP) throws RemoteException {
         // Check if clients from server list are reachable
         PlayerServer playerOp = null;
             try {
-                playerOp = (PlayerServer) Naming.lookup("rmi://"+ clientIP + ":"+ CLIENT_PORT+"/player" + playerId);
-                System.out.println("Player_" + playerId + " up and running");
+                playerOp = (PlayerServer) Naming.lookup("rmi://"+ clientIP + ":"+ CLIENT_PORT+"/player" + playerName);
+                System.out.println("Player_" + playerName + " up and running");
 
             } catch (NotBoundException e) {
-                System.out.println("Player " + playerId + " not reachable");
+                System.out.println("Player " + playerName + " not reachable");
             } catch (MalformedURLException | RemoteException e) {
                 //e.printStackTrace();
             }
@@ -221,7 +217,7 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
         System.out.println("moving " + prisoner + " to " + (rowOrCol == Alcatraz.ROW ? "row" : "col") + " " + (rowOrCol == Alcatraz.ROW ? row : col));
 
         for (AlcatrazPlayer aPlayer : allClients) {
-            if (aPlayer.getId() == myID){
+            if (aPlayer.getId() == clientPlayer.getId()){
                 continue;
             }
 
@@ -231,8 +227,8 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                     System.exit(0);
                 }
                 try {
-                    PlayerServer playertmp = (PlayerServer) Naming.lookup("rmi://"+ aPlayer.getPlayerIP() + ":"+ CLIENT_PORT +"/player" + aPlayer.getId());
-                    System.out.println("Send move to Opponent " + "rmi://"+ aPlayer.getPlayerIP() +":"+ CLIENT_PORT +"/player" + aPlayer.getId());
+                    PlayerServer playertmp = (PlayerServer) Naming.lookup("rmi://"+ aPlayer.getPlayerIP() + ":"+ CLIENT_PORT +"/player" + aPlayer.getName());
+                    System.out.println("Send move to Opponent " + "rmi://"+ aPlayer.getPlayerIP() + ":"+ CLIENT_PORT +"/player" + aPlayer.getName());
                     playertmp.sendMove(player, prisoner, rowOrCol, row, col);
                     break;
                 } catch (NotBoundException | MalformedURLException | RemoteException e) {
@@ -255,10 +251,12 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
     @Override
     public void startGame(List <AlcatrazPlayer> allClientsFromServer) throws RemoteException {
 
+        System.out.println("Index: " + allClients.indexOf(clientPlayer));
         allClients = allClientsFromServer;
         alcatraz = new Alcatraz();
         System.out.println(allClients.size());
-        alcatraz.init(allClients.size(),myID);
+        alcatraz.init(allClients.size(),allClients.indexOf(clientPlayer));
+        allClients.forEach(aPlayer -> alcatraz.getPlayer(allClients.indexOf(aPlayer)).setName(aPlayer.getName()));
         alcatraz.addMoveListener(this);
         alcatraz.showWindow();
         alcatraz.start();
@@ -266,7 +264,7 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
 
     @Override
     public void sendMove(Player player, Prisoner prisoner, int rowOrCol, int row, int col) throws IllegalMoveException {
-        System.out.println("This method should be called at opponent");
+        System.out.println("Doing move from opponent");
 
         alcatraz.doMove(player, prisoner, rowOrCol, row, col);
         //System.out.println("Move received: " + player.getName() + " Prisoner: " + prisoner.getId() + " Row/Col:" + rowOrCol + " Row: " + row + " Col:" +col);
@@ -276,8 +274,5 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
     public void gameWon(Player player) {
         System.out.println("Player " + player.getId() + " wins.");
     }
-
-
-
 
 }

@@ -113,8 +113,12 @@ public class SpreadService implements Constants, AdvancedMessageListener, Serial
 					MainServer.deRegisterPlayer( playToRemove);
 				}else if(messageData instanceof StartGameMessage){
 					//startGame
-					MainServer.gameStarted = true;
 					MainServer.players = ( (StartGameMessage) messageData).getFinalLobby();
+					if(MainServer.setGameStart()){
+						System.out.println("Started Game!");
+					}else{
+						System.out.println("Game was not started!");
+					}
 				}else if(messageData instanceof UpdateLobbyMessage){
 
 					MainServer.players = ((UpdateLobbyMessage) messageData).getUpdateLobby();

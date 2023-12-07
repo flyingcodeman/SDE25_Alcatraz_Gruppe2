@@ -10,9 +10,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static interfaces.Constants.MY_NETWORK;
 import static interfaces.Constants.SERVER_PORT;
@@ -31,28 +29,24 @@ public class MainServer  {
     }
 
     public static AlcatrazPlayer registerPlayer(String name, String networkIP) {
-        // Create a boolean array to mark used IDs
-        boolean[] usedIds = new boolean[Integer.MAX_VALUE];
+        List<Integer> usedIDS = new ArrayList<>();
 
         for(AlcatrazPlayer player : players){
             if (Objects.equals(player.getName(), name)) {
                 System.out.println("Log player name " + player.getName() + " already exists!");
                 return null;
             }
-
-            int objectId = player.getId();
-            if (objectId >= 0 && objectId < usedIds.length) {
-                usedIds[objectId] = true;
-            }
+            usedIDS.add(player.getId());
         }
 
-        // Find the smallest free ID
-        int smallestFreeID = -1;
-        for (int i = 0; i < usedIds.length; i++) {
-            if (!usedIds[i]) {
-                smallestFreeID = i;
+        int smallestFreeID = 0;
+        while(true){
+            if(!usedIDS.contains(smallestFreeID)){
+                break;
             }
+            smallestFreeID++;
         }
+
         AlcatrazPlayer newPlayer = new AlcatrazPlayer(smallestFreeID, networkIP);
         newPlayer.setName(name);
         players.add(newPlayer);
@@ -73,13 +67,19 @@ public class MainServer  {
         return false;
     }
 
+    public static boolean setGameStart() {
+        if(MainServer.players.size() >= 2 && !MainServer.gameStarted){
+            MainServer.gameStarted = true;
+            return true;
+        }else{
+            return false;
+        }
+    }
+
     public static void main(String[] args) throws UnknownHostException, SpreadException {
 		spreadService = new SpreadService("service"+args[0]);
 
         try {
-
-            ServerRMIInterface server = new ServerRMI();
-
             Registry registry;
             try {
                 registry = LocateRegistry.createRegistry(Integer.parseInt(SERVER_PORT));
@@ -91,9 +91,10 @@ public class MainServer  {
                 }
             }
 
+            ServerRMIInterface server = new ServerRMI();
+
             // Bind the remote object to the RMI registry
             registry.rebind("Server"+args[0], server);    //server
-
             System.out.println("Server" + args[0] + " is ready...");
         } catch (Exception e) {
             e.printStackTrace();
