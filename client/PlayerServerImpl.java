@@ -40,7 +40,7 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
     }
 
     public void init() throws SpreadException, RemoteException {
-        Player player;
+        AlcatrazPlayer player;
 
         Scanner scannerOption = new Scanner(System.in);
         Scanner scannerName = new Scanner(System.in);
@@ -80,9 +80,9 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                             if(playerId == -1){
                                 System.out.println("Name already exists!");
                             }else{
-                                player = new Player(playerId);
+                                player = new AlcatrazPlayer(playerId, MY_NETWORK);
                                 player.setName(playerName);
-                                System.out.println("Message from server: Your ID is " + playerId);
+                                System.out.println("Message from server: "+ playerName +" successfully registered!");
 
                                 // Startup own RMI P2P connection
                                 try {
@@ -165,7 +165,7 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
         myID = cID;
     }
 
-    private static ServerRMIInterface findAvailableServer() {
+    private ServerRMIInterface findAvailableServer() {
         ServerRMIInterface serverObject = null;
         for(int i = 1; i <= 3; i++){
             try{
@@ -181,18 +181,18 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
         return serverObject;
     }
 
-    private static ServerRMIInterface getServerObject(int serverIndex) throws MalformedURLException, NotBoundException, RemoteException {
-        return (ServerRMIInterface) Naming.lookup("rmi://"+ MY_NETWORK + ":1098/Server" + serverIndex);
+    private ServerRMIInterface getServerObject(int serverIndex) throws MalformedURLException, NotBoundException, RemoteException {
+        return (ServerRMIInterface) Naming.lookup("rmi://"+ MY_NETWORK + ":"+ SERVER_PORT +"/Server" + serverIndex);
     }
 
-    private static void initClientRMI(String myId) throws RemoteException  {
+    private void initClientRMI(String myId) throws RemoteException  {
         PlayerServer tmpPlayerServer = new PlayerServerImpl();
         Registry registry;
         try {
-            registry = LocateRegistry.createRegistry(1099);
+            registry = LocateRegistry.createRegistry(Integer.parseInt(CLIENT_PORT));
         } catch (RemoteException ex) {
             try {
-                registry = LocateRegistry.getRegistry(1099);
+                registry = LocateRegistry.getRegistry(Integer.parseInt(CLIENT_PORT));
             } catch (RemoteException e) {
                 throw new RuntimeException(e);
             }
@@ -202,11 +202,11 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
         System.out.println("player " + myId + " successfully started.\n");
     }
 
-    private static PlayerServer getRMIPlayer(int playerId, String clientIP) throws RemoteException {
+    private PlayerServer getRMIPlayer(int playerId, String clientIP) throws RemoteException {
         // Check if clients from server list are reachable
         PlayerServer playerOp = null;
             try {
-                playerOp = (PlayerServer) Naming.lookup("rmi://"+ clientIP + ":1099/player" + playerId);
+                playerOp = (PlayerServer) Naming.lookup("rmi://"+ clientIP + ":"+ CLIENT_PORT+"/player" + playerId);
                 System.out.println("Player_" + playerId + " up and running");
 
             } catch (NotBoundException e) {
@@ -231,8 +231,8 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                     System.exit(0);
                 }
                 try {
-                    PlayerServer playertmp = (PlayerServer) Naming.lookup("rmi://"+ aPlayer.getPlayerIP() + ":1099/player" + aPlayer.getId());
-                    System.out.println("Send move to Opponent " + "rmi://"+ aPlayer.getPlayerIP() +":1099/player" + aPlayer.getId());
+                    PlayerServer playertmp = (PlayerServer) Naming.lookup("rmi://"+ aPlayer.getPlayerIP() + ":"+ CLIENT_PORT +"/player" + aPlayer.getId());
+                    System.out.println("Send move to Opponent " + "rmi://"+ aPlayer.getPlayerIP() +":"+ CLIENT_PORT +"/player" + aPlayer.getId());
                     playertmp.sendMove(player, prisoner, rowOrCol, row, col);
                     break;
                 } catch (NotBoundException | MalformedURLException | RemoteException e) {

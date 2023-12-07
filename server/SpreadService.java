@@ -46,7 +46,7 @@ public class SpreadService implements Constants, AdvancedMessageListener, Serial
 		connection.multicast(message);
 	}
 
-	public void deRegisterPlayer(Player player) throws SpreadException{
+	public void deRegisterPlayer(AlcatrazPlayer player) throws SpreadException{
 		SpreadMessage message = new SpreadMessage();
 		message.setObject(new DeRegisterMessage(player));
 		message.setType((short) 1); // sync
@@ -109,7 +109,7 @@ public class SpreadService implements Constants, AdvancedMessageListener, Serial
 					MainServer.registerPlayer( newPlayerName, newPlayerIP);
 				}else if(messageData instanceof  DeRegisterMessage){
 					// deregister
-					Player playToRemove = ( (DeRegisterMessage) messageData).getPlayerToRemove();
+					AlcatrazPlayer playToRemove = ( (DeRegisterMessage) messageData).getPlayerToRemove();
 					MainServer.deRegisterPlayer( playToRemove);
 				}else if(messageData instanceof StartGameMessage){
 					//startGame

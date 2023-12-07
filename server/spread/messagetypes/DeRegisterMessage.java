@@ -1,22 +1,23 @@
 package server.spread.messagetypes;
 
 import at.falb.games.alcatraz.api.Player;
+import server.AlcatrazPlayer;
 
 import java.io.Serializable;
 
 public class DeRegisterMessage implements Serializable {
 
-    Player playerToRemove;
+    AlcatrazPlayer playerToRemove;
 
-    public DeRegisterMessage(Player playerToRemove) {
+    public DeRegisterMessage(AlcatrazPlayer playerToRemove) {
         this.playerToRemove = playerToRemove;
     }
 
-    public Player getPlayerToRemove() {
+    public AlcatrazPlayer getPlayerToRemove() {
         return playerToRemove;
     }
 
-    public void setPlayerToRemove(Player playerToRemove) {
+    public void setPlayerToRemove(AlcatrazPlayer playerToRemove) {
         this.playerToRemove = playerToRemove;
     }
 }
