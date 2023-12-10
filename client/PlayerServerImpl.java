@@ -56,6 +56,7 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
     }
 
     public void init() throws SpreadException, RemoteException {
+        ServerRMIInterface serverObject;
 
         while (started) {
             System.out.println("Choose an option:");
@@ -70,7 +71,7 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                 case 1:
                     try {
                         // Lookup the remote object from the ServerRMI registry
-                        ServerRMIInterface serverObject = findAvailableServer();
+                        serverObject = findAvailableServer();
                         if(serverObject == null){
                             System.exit(0);
                         }
@@ -110,6 +111,11 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                                     if(stayInLobby) {
                                         switch (lobbyChoice) {
                                             case 1:
+                                                serverObject = findAvailableServer();
+                                                if (serverObject == null) {
+                                                    System.exit(0);
+                                                }
+
                                                 serverObject.deRegister(clientPlayer);
                                                 clientPlayer = null;
                                                 stayInLobby = false;
