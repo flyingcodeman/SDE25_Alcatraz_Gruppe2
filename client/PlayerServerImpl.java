@@ -27,9 +27,24 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
     protected static AlcatrazPlayer clientPlayer;
     private static Alcatraz alcatraz;
 
+    protected Scanner scannerOption;
+    protected Scanner scannerName;
+    protected Scanner scannerLobby;
+
+    protected static boolean stayInLobby;
+    protected static boolean started;
+    protected static boolean stayInRegister;
+    protected int lobbyChoice;
+
     // Constructor
     public PlayerServerImpl() throws RemoteException {
         super();
+        stayInLobby = true;
+        started = true;
+        stayInRegister = true;
+        this.scannerOption = new Scanner(System.in);
+        this.scannerName = new Scanner(System.in);
+        this.scannerLobby = new Scanner(System.in);
     }
 
     public static void main(String[] args) throws RemoteException, MalformedURLException, SpreadException {
@@ -42,19 +57,13 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
 
     public void init() throws SpreadException, RemoteException {
 
-
-        Scanner scannerOption = new Scanner(System.in);
-        Scanner scannerName = new Scanner(System.in);
-        Scanner scannerLobby = new Scanner(System.in);
-
-        boolean started = true;
         while (started) {
             System.out.println("Choose an option:");
             System.out.println("Register to Game: 1");
             System.out.println("Exit the program: 2\n");
 
             // Read user input
-            int choice = scannerOption.nextInt();
+            int choice = this.scannerOption.nextInt();
 
             // Process user input
             switch (choice) {
@@ -66,10 +75,9 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                             System.exit(0);
                         }
 
-                        boolean stayInRegister = true;
                         while(stayInRegister){
                             System.out.println("Type in your name to register, or exit to leave:");
-                            String playerName = scannerName.nextLine();
+                            String playerName = this.scannerName.nextLine();
 
                             if(playerName.equalsIgnoreCase("exit")) {
                                 System.out.println("Exiting the program. Goodbye!");
@@ -90,62 +98,72 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                                 } catch (RemoteException e) {
                                     throw new RuntimeException(e);
                                 }
-                                boolean stayInLobby = true;
+
                                 while(stayInLobby){
                                     System.out.println("You are in the lobby.");
                                     System.out.println("Press 1 to leave,");
                                     System.out.println("Press 2 to start the game: ");
-                                    int lobbyChoice = scannerLobby.nextInt();
+                                    int lobbyChoice = this.scannerLobby.nextInt();
 
-                                    switch (lobbyChoice){
-                                        case 1:
-                                            serverObject.deRegister(clientPlayer);
-                                            clientPlayer = null;
-                                            stayInLobby = false;
-                                            break;
-                                        case 2:
-                                            serverObject = findAvailableServer();
-                                            if(serverObject == null){
-                                                System.exit(0);
-                                            }
-
-
-                                            allClients = serverObject.startGame();
-                                            if(allClients == null){
-                                                System.out.println("Not enough players in lobby, wait for others!");
+                                    if(stayInLobby) {
+                                        switch (lobbyChoice) {
+                                            case 1:
+                                                serverObject.deRegister(clientPlayer);
+                                                clientPlayer = null;
+                                                stayInLobby = false;
                                                 break;
-                                            }
-
-                                            alcatraz = new Alcatraz();
-                                            System.out.println(allClients.size());
-                                            alcatraz.init(allClients.size(),allClients.indexOf(clientPlayer));
-                                            allClients.forEach(aPlayer -> alcatraz.getPlayer(allClients.indexOf(aPlayer)).setName(aPlayer.getName()));
-                                            alcatraz.addMoveListener(this);
-                                            alcatraz.showWindow();
-                                            alcatraz.start();
-
-                                            for(AlcatrazPlayer client : allClients){
-                                                if(client.getId() == clientPlayer.getId()){
-                                                    continue;
+                                            case 2:
+                                                serverObject = findAvailableServer();
+                                                if (serverObject == null) {
+                                                    System.exit(0);
                                                 }
-                                                try {
-                                                    PlayerServer currentPlayer = getRMIPlayer(client.getName(), client.getPlayerIP());
-                                                    currentPlayer.startGame(allClients);
-                                                } catch (RemoteException e) {
-                                                    throw new RuntimeException(e);
-                                                }
-                                            }
-                                            stayInLobby = false;
-                                            started = false;
-                                            stayInRegister = false;
-                                            scannerName.close();
-                                            scannerOption.close();
-                                            scannerLobby.close();
 
-                                            break;
-                                        default:
-                                            System.out.println("Invalid option. Please choose a valid option.");
-                                            break;
+
+                                                allClients = serverObject.startGame();
+                                                if (allClients == null) {
+                                                    System.out.println("Not enough players in lobby, wait for others!");
+                                                    break;
+                                                }
+
+                                                alcatraz = new Alcatraz();
+                                                System.out.println(allClients.size());
+                                                alcatraz.init(allClients.size(), allClients.indexOf(clientPlayer));
+                                                allClients.forEach(aPlayer -> alcatraz.getPlayer(allClients.indexOf(aPlayer)).setName(aPlayer.getName()));
+                                                alcatraz.addMoveListener(this);
+                                                alcatraz.showWindow();
+                                                alcatraz.start();
+
+                                                for (AlcatrazPlayer client : allClients) {
+                                                    if (client.getId() == clientPlayer.getId()) {
+                                                        continue;
+                                                    }
+                                                    try {
+                                                        PlayerServer currentPlayer = getRMIPlayer(client.getName(), client.getPlayerIP());
+                                                        currentPlayer.startGame(allClients);
+                                                    } catch (RemoteException e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                                stayInLobby = false;
+                                                started = false;
+                                                stayInRegister = false;
+                                                this.scannerName.close();
+                                                this.scannerOption.close();
+                                                this.scannerLobby.close();
+
+                                                break;
+                                            default:
+                                                System.out.println("Invalid option. Please choose a valid option.");
+                                                break;
+                                        }
+                                    }else{
+                                        started = false;
+                                        stayInRegister = false;
+                                        this.scannerName.close();
+                                        this.scannerOption.close();
+                                        this.scannerLobby.close();
+
+                                        break;
                                     }
                                 }
 
@@ -157,9 +175,9 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                     break;
                 case 2:
                     System.out.println("Exiting the program. Goodbye!");
-                    scannerName.close();
-                    scannerOption.close();
-                    scannerLobby.close();
+                    this.scannerName.close();
+                    this.scannerOption.close();
+                    this.scannerLobby.close();
 
                     System.exit(0); // Terminate the program
                     break;
@@ -270,6 +288,8 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
 
     @Override
     public void startGame(List <AlcatrazPlayer> allClientsFromServer) throws RemoteException {
+        stayInLobby = false;
+
         allClients = allClientsFromServer;
         alcatraz = new Alcatraz();
         System.out.println(allClients.size());
