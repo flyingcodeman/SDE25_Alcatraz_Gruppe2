@@ -33,10 +33,15 @@ public class MainServer  {
     public static AlcatrazPlayer registerPlayer(String name, String networkIP) {
         List<Integer> usedIDS = new ArrayList<>();
 
+        if(players.size() >= 4){
+            System.out.println("Log Lobby full! Cant register " + name);
+            return new AlcatrazPlayer(-1, "lobbyFull");
+        }
+
         for(AlcatrazPlayer player : players){
             if (Objects.equals(player.getName(), name)) {
                 System.out.println("Log player name " + player.getName() + " already exists!");
-                return null;
+                return new AlcatrazPlayer(-2, "nameTaken");
             }
             usedIDS.add(player.getId());
         }

@@ -87,7 +87,9 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                             clientPlayer = serverObject.register(playerName, MY_NETWORK);
 
                             // Display the result
-                            if(clientPlayer == null){
+                            if(clientPlayer.getId() == -1){
+                                System.out.println("Lobby is already full!");
+                            }else if(clientPlayer.getId() == -2){
                                 System.out.println("Name already exists!");
                             }else{
                                 System.out.println("Message from server: "+ clientPlayer.getName() +" successfully registered!");

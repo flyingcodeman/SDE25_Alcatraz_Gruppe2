@@ -25,7 +25,9 @@ public class ServerRMI extends UnicastRemoteObject implements ServerRMIInterface
         MainServer.spreadService.registerPlayer(name, networkIP);
 
         AlcatrazPlayer newPlayer = registerPlayer(name, networkIP);
-        if (newPlayer == null) return null;
+        if (newPlayer.getId() < 0){
+            return newPlayer;
+        }
 
         return newPlayer;
     }
