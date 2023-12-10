@@ -1,5 +1,6 @@
 package client;
 
+import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
@@ -46,7 +47,8 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
         Scanner scannerName = new Scanner(System.in);
         Scanner scannerLobby = new Scanner(System.in);
 
-        while (true) {
+        boolean started = true;
+        while (started) {
             System.out.println("Choose an option:");
             System.out.println("Register to Game: 1");
             System.out.println("Exit the program: 2\n");
@@ -64,7 +66,8 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                             System.exit(0);
                         }
 
-                        while(true){
+                        boolean stayInRegister = true;
+                        while(stayInRegister){
                             System.out.println("Type in your name to register, or exit to leave:");
                             String playerName = scannerName.nextLine();
 
@@ -113,7 +116,6 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                                                 break;
                                             }
 
-                                            System.out.println("Index: " + allClients.indexOf(clientPlayer));
                                             alcatraz = new Alcatraz();
                                             System.out.println(allClients.size());
                                             alcatraz.init(allClients.size(),allClients.indexOf(clientPlayer));
@@ -133,6 +135,13 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                                                     throw new RuntimeException(e);
                                                 }
                                             }
+                                            stayInLobby = false;
+                                            started = false;
+                                            stayInRegister = false;
+                                            scannerName.close();
+                                            scannerOption.close();
+                                            scannerLobby.close();
+
                                             break;
                                         default:
                                             System.out.println("Invalid option. Please choose a valid option.");
@@ -178,7 +187,18 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
     }
 
     private static ServerRMIInterface getServerObject(int serverIndex) throws MalformedURLException, NotBoundException, RemoteException {
-        return (ServerRMIInterface) Naming.lookup("rmi://"+ MY_NETWORK + ":" + SERVER_PORT + "/Server" + serverIndex);
+        String serverPortName;
+        try {
+            Field serverPortField = Constants.class.getDeclaredField("SERVER_PORT" + String.valueOf(serverIndex));
+            serverPortName = String.valueOf(serverPortField.get(null));
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("Log registering via this server: rmi://"+ MY_NETWORK + ":" + serverPortName + "/Server" + serverIndex);
+        return (ServerRMIInterface) Naming.lookup("rmi://"+ MY_NETWORK + ":" + serverPortName + "/Server" + serverIndex);
     }
 
     private static void initClientRMI(String playerName) throws RemoteException  {
@@ -250,8 +270,6 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
 
     @Override
     public void startGame(List <AlcatrazPlayer> allClientsFromServer) throws RemoteException {
-
-        System.out.println("Index: " + allClients.indexOf(clientPlayer));
         allClients = allClientsFromServer;
         alcatraz = new Alcatraz();
         System.out.println(allClients.size());

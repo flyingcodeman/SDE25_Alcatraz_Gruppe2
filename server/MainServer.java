@@ -2,10 +2,13 @@ package server;
 
 import at.falb.games.alcatraz.api.Player;
 import client.PlayerServerImpl;
+import interfaces.Constants;
 import interfaces.ServerRMIInterface;
 import spread.SpreadException;
 
+import java.lang.reflect.Field;
 import java.net.UnknownHostException;
+import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -13,7 +16,6 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
 import static interfaces.Constants.MY_NETWORK;
-import static interfaces.Constants.SERVER_PORT;
 import static java.lang.Integer.parseInt;
 
 
@@ -79,22 +81,30 @@ public class MainServer  {
     public static void main(String[] args) throws UnknownHostException, SpreadException {
 		spreadService = new SpreadService("service"+args[0]);
 
+        String serverPortName;
         try {
-            Registry registry;
+            Field serverPortField = Constants.class.getDeclaredField("SERVER_PORT" + String.valueOf(args[0]));
+            serverPortName = String.valueOf(serverPortField.get(null));
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+
+            Registry registry = null;
             try {
-                registry = LocateRegistry.createRegistry(Integer.parseInt(SERVER_PORT));
+                registry = LocateRegistry.createRegistry(Integer.parseInt(serverPortName));
+
             } catch (RemoteException ex) {
-                try {
-                    registry = LocateRegistry.getRegistry(Integer.parseInt(SERVER_PORT));
-                } catch (RemoteException e) {
-                    throw new RuntimeException(e);
-                }
+                System.out.println(ex);
             }
 
-            ServerRMIInterface server = new ServerRMI();
 
+            ServerRMIInterface server = new ServerRMI();
             // Bind the remote object to the RMI registry
-            registry.rebind("Server"+args[0], server);    //server
+            registry.rebind("Server"+args[0], server);   //server
             System.out.println("Server" + args[0] + " is ready...");
         } catch (Exception e) {
             e.printStackTrace();
