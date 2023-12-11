@@ -69,13 +69,6 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
             // Process user input
             switch (choice) {
                 case 1:
-                    try {
-                        // Lookup the remote object from the ServerRMI registry
-                        serverObject = findAvailableServer();
-                        if(serverObject == null){
-                            System.exit(0);
-                        }
-
                         while(stayInRegister){
                             System.out.println("Type in your name to register, or exit to leave:");
                             String playerName = this.scannerName.nextLine();
@@ -84,6 +77,13 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                                 System.out.println("Exiting the program. Goodbye!");
                                 break;
                             }
+                            try {
+                                // Lookup the remote object from the ServerRMI registry
+                                serverObject = findAvailableServer();
+                                if(serverObject == null){
+                                    System.exit(0);
+                                }
+
                             // Call the remote method
                             clientPlayer = serverObject.register(playerName, MY_NETWORK);
 
@@ -176,10 +176,11 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                                 }
 
                             }
+                            } catch (Exception e) {
+                                //e.printStackTrace();
+                            }
                         }
-                    } catch (Exception e) {
-                        //e.printStackTrace();
-                    }
+
                     break;
                 case 2:
                     System.out.println("Exiting the program. Goodbye!");
@@ -262,6 +263,9 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
     public void moveDone(Player player, Prisoner prisoner, int rowOrCol, int row, int col) {
         System.out.println("moving " + prisoner + " to " + (rowOrCol == Alcatraz.ROW ? "row" : "col") + " " + (rowOrCol == Alcatraz.ROW ? row : col));
 
+        List<PlayerServer> activePlayers = new ArrayList<>();
+        boolean allClientsUp = true;
+
         for (AlcatrazPlayer aPlayer : allClients) {
             if (aPlayer.getId() == clientPlayer.getId()){
                 continue;
@@ -270,12 +274,13 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
             int retryCounter = 0;
             while(true){
                 if(retryCounter == 5){
-                    System.exit(0);
+                    allClientsUp = false;
+                    break;
                 }
                 try {
                     PlayerServer playertmp = (PlayerServer) Naming.lookup("rmi://"+ aPlayer.getPlayerIP() + ":"+ CLIENT_PORT +"/player" + aPlayer.getName());
-                    System.out.println("Send move to Opponent " + "rmi://"+ aPlayer.getPlayerIP() + ":"+ CLIENT_PORT +"/player" + aPlayer.getName());
-                    playertmp.sendMove(player, prisoner, rowOrCol, row, col);
+                    playertmp.isAlive();
+                    activePlayers.add(playertmp);
                     break;
                 } catch (NotBoundException | MalformedURLException | RemoteException e) {
                     System.out.println("Player " + aPlayer.getId() + " not reachable");
@@ -286,12 +291,34 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                     } catch (InterruptedException ex) {
                         throw new RuntimeException(ex);
                     }
-                } catch (IllegalMoveException e) {
-                    throw new RuntimeException(e);
                 }
             }
 
         }
+
+        for(PlayerServer closingPlayer : activePlayers){
+            if(!allClientsUp) {
+                try {
+                    closingPlayer.initiateGameClose();
+                } catch (RemoteException e) {
+                    throw new RuntimeException(e);
+                }
+            }else {
+                //System.out.println("Send move to Opponent " + "rmi://"+ aPlayer.getPlayerIP() + ":"+ CLIENT_PORT +"/player" + aPlayer.getName());
+                try {
+                    closingPlayer.sendMove(player, prisoner, rowOrCol, row, col);
+                } catch (IllegalMoveException | RemoteException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+
+        }
+
+        if(!allClientsUp){
+            this.closeGame();
+        }
+
     }
 
     @Override
@@ -314,6 +341,26 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
 
         alcatraz.doMove(player, prisoner, rowOrCol, row, col);
         //System.out.println("Move received: " + player.getName() + " Prisoner: " + prisoner.getId() + " Row/Col:" + rowOrCol + " Row: " + row + " Col:" +col);
+    }
+
+    @Override
+    public void isAlive() throws RemoteException {
+        System.out.println("Log isAlive request was sent via RMI.");
+    }
+
+    @Override
+    public void initiateGameClose() {
+        System.out.println("Closing game because one player could not be reached!");
+
+        this.closeGame();
+    }
+
+    private void closeGame() {
+
+        new Thread(() -> {
+            System.out.println("Server is shutting down...");
+            System.exit(0);
+        }).start();
     }
 
     @Override

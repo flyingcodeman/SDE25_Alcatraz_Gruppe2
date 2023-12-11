@@ -12,4 +12,6 @@ import java.util.List;
 interface PlayerServer extends Remote {
     void startGame(List<AlcatrazPlayer> players) throws RemoteException;
     void sendMove(Player player, Prisoner prisoner, int rowOrCol, int row, int col) throws IllegalMoveException, RemoteException;
+    void isAlive() throws  RemoteException;
+    void initiateGameClose() throws RemoteException;
 }
