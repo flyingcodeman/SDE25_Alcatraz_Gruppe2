@@ -84,6 +84,8 @@ public class MainServer  {
     }
 
     public static void main(String[] args) throws UnknownHostException, SpreadException {
+        System.setProperty("java.rmi.server.hostname", MY_NETWORK);
+
 		spreadService = new SpreadService("service"+args[0]);
 
         String serverPortName;

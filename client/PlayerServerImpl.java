@@ -74,7 +74,7 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                             String playerName = this.scannerName.nextLine();
 
                             if(playerName.equalsIgnoreCase("exit")) {
-                                System.out.println("Exiting the program. Goodbye!");
+                                System.out.println("Exiting register procedure!");
                                 break;
                             }
                             try {
@@ -215,20 +215,24 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
 
     private static ServerRMIInterface getServerObject(int serverIndex) throws MalformedURLException, NotBoundException, RemoteException {
         String serverPortName;
+        String serverIPName;
         try {
             Field serverPortField = Constants.class.getDeclaredField("SERVER_PORT" + String.valueOf(serverIndex));
             serverPortName = String.valueOf(serverPortField.get(null));
+            Field serverIPField = Constants.class.getDeclaredField("SERVER_IP" + String.valueOf(serverIndex));
+            serverIPName = String.valueOf(serverIPField.get(null));
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
 
-        System.out.println("Log registering via this server: rmi://"+ MY_NETWORK + ":" + serverPortName + "/Server" + serverIndex);
-        return (ServerRMIInterface) Naming.lookup("rmi://"+ MY_NETWORK + ":" + serverPortName + "/Server" + serverIndex);
+        System.out.println("Log registering via this server: rmi://"+ serverIPName + ":" + serverPortName + "/Server" + serverIndex);
+        return (ServerRMIInterface) Naming.lookup("rmi://"+ serverIPName + ":" + serverPortName + "/Server" + serverIndex);
     }
 
     private static void initClientRMI(String playerName) throws RemoteException  {
+        System.setProperty("java.rmi.server.hostname", MY_NETWORK);
         PlayerServer tmpPlayerServer = new PlayerServerImpl();
         Registry registry;
         try {
