@@ -131,22 +131,6 @@ public class SpreadService implements Constants, AdvancedMessageListener, Serial
 		}
 	}
 
-	public static byte[] serializeList(List<? extends Serializable> objectList) {
-		try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			 ObjectOutputStream oos = new ObjectOutputStream(bos)) {
-
-			// Serialize the list of objects
-			oos.writeObject(objectList);
-
-			// Return the byte array
-			return bos.toByteArray();
-
-		} catch (IOException e) {
-			e.printStackTrace();
-			// Handle the exception as needed
-			return null;
-		}
-	}
 
 	@SuppressWarnings("unchecked")
 	public static Object deserializeList(byte[] data) {

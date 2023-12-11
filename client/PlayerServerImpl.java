@@ -48,8 +48,6 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
     }
 
     public static void main(String[] args) throws RemoteException, MalformedURLException, SpreadException {
-        // Todo: Remove after Server connection works
-
         // Start up the playerm
         PlayerServerImpl game = new PlayerServerImpl();
         game.init();

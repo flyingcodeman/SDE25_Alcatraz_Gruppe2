@@ -24,12 +24,7 @@ public class ServerRMI extends UnicastRemoteObject implements ServerRMIInterface
     public AlcatrazPlayer register(String name, String networkIP) throws RemoteException, SpreadException {
         MainServer.spreadService.registerPlayer(name, networkIP);
 
-        AlcatrazPlayer newPlayer = registerPlayer(name, networkIP);
-        if (newPlayer.getId() < 0){
-            return newPlayer;
-        }
-
-        return newPlayer;
+        return registerPlayer(name, networkIP);
     }
 
     @Override
