@@ -21,26 +21,31 @@ public class ServerRMI extends UnicastRemoteObject implements ServerRMIInterface
     }
 
     @Override
-    public AlcatrazPlayer register(String name, String networkIP) throws RemoteException, SpreadException {
-        MainServer.spreadService.registerPlayer(name, networkIP);
-
-        return registerPlayer(name, networkIP);
+    public AlcatrazPlayer register(String name, String networkIP) throws RemoteException {
+        try {
+            MainServer.spreadService.registerPlayer(name, networkIP);
+            return registerPlayer(name, networkIP);
+        } catch (SpreadException e) {
+            return null;
+        }
     }
 
     @Override
-    public boolean deRegister(AlcatrazPlayer player) throws RemoteException, SpreadException {
-        MainServer.spreadService.deRegisterPlayer(player);
-
-        return deRegisterPlayer(player);
+    public boolean deRegister(AlcatrazPlayer player) throws RemoteException {
+        try {
+            MainServer.spreadService.deRegisterPlayer(player);
+            return deRegisterPlayer(player);
+        } catch (SpreadException e) {
+            return false;
+        }
     }
 
     @Override
-    public List<AlcatrazPlayer> startGame() throws RemoteException, SpreadException {
-
-        MainServer.spreadService.startGame();
-        if(setGameStart()){
-            return MainServer.players;
-        }else{
+    public List<AlcatrazPlayer> startGame() throws RemoteException {
+        try {
+            MainServer.spreadService.startGame();
+            return setGameStart();
+        } catch (SpreadException e) {
             return null;
         }
     }

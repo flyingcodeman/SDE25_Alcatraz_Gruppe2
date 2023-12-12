@@ -74,12 +74,12 @@ public class MainServer  {
         return false;
     }
 
-    public static boolean setGameStart() {
+    public static List<AlcatrazPlayer> setGameStart() {
         if(MainServer.players.size() >= 2 && !MainServer.gameStarted){
             MainServer.gameStarted = true;
-            return true;
+            return MainServer.players;
         }else{
-            return false;
+            return new ArrayList<AlcatrazPlayer>();
         }
     }
 

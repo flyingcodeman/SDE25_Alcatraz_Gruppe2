@@ -114,10 +114,11 @@ public class SpreadService implements Constants, AdvancedMessageListener, Serial
 				}else if(messageData instanceof StartGameMessage){
 					//startGame
 					MainServer.players = ( (StartGameMessage) messageData).getFinalLobby();
-					if(MainServer.setGameStart()){
-						System.out.println("Started Game!");
-					}else{
+					List<AlcatrazPlayer> gameStartResponse= MainServer.setGameStart();
+					if(gameStartResponse.isEmpty()){
 						System.out.println("Game was not started!");
+					}else{
+						System.out.println("Started Game!");
 					}
 				}else if(messageData instanceof UpdateLobbyMessage){
 

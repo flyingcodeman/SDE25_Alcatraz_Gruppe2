@@ -86,7 +86,10 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                             clientPlayer = serverObject.register(playerName, MY_NETWORK);
 
                             // Display the result
-                            if(clientPlayer.getId() == -1){
+                            if(clientPlayer == null){
+                                System.out.println("Server failure, please try again!");
+                            }
+                            else if(clientPlayer.getId() == -1){
                                 System.out.println("Lobby is already full!");
                             }else if(clientPlayer.getId() == -2){
                                 System.out.println("Name already exists!");
@@ -114,10 +117,17 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
                                                     System.exit(0);
                                                 }
 
-                                                serverObject.deRegister(clientPlayer);
-                                                clientPlayer = null;
-                                                stayInLobby = false;
-                                                break;
+                                                boolean deRegisterResponse = serverObject.deRegister(clientPlayer);
+
+                                                if(deRegisterResponse){
+                                                    clientPlayer = null;
+                                                    stayInLobby = false;
+                                                    break;
+                                                }else{
+                                                    System.out.println("Player could NOT be removed, please try again!");
+                                                    break;
+                                                }
+
                                             case 2:
                                                 serverObject = findAvailableServer();
                                                 if (serverObject == null) {
@@ -126,7 +136,11 @@ public class PlayerServerImpl extends UnicastRemoteObject implements Constants, 
 
 
                                                 allClients = serverObject.startGame();
-                                                if (allClients == null) {
+                                                if(allClients == null){
+                                                    System.out.println("Server failure, please try again!");
+                                                    break;
+                                                }
+                                                else if (allClients.isEmpty()) {
                                                     System.out.println("Not enough players in lobby, wait for others!");
                                                     break;
                                                 }
